@@ -157,6 +157,25 @@ func TestMainnetDAOAtomicEnvelopePreservesEveryUnrelatedLegacyAndRestrictionSlot
 	require.Error(t, applyMainnetDAOFork(c, h, s, raw))
 }
 
+func TestMainnetDAONoNoticeIntervalStillRequiresEpochBoundary(t *testing.T) {
+	c, h, s, raw := mainnetDAOTestFixture(t)
+	g := c.c.BdagMainnetDAO
+	g.ReleaseDistributedAt = 0
+	g.NoticePublishedAt = 0
+	g.NotBeforeTimestamp = 0
+
+	// The first block inside the current epoch must not migrate even though
+	// there is no separate notice interval and native voting has locked in.
+	beforeBoundary := *h
+	beforeBoundary.Time = c.parent.Time
+	require.NoError(t, applyMainnetDAOFork(c, &beforeBoundary, s, raw))
+	require.Equal(t, common.Hash{}, s.GetState(mparams.ChainTallyAddr, mainnetDAOAppliedSlot))
+
+	// The fixture header crosses the next staking epoch at the native anchor.
+	require.NoError(t, applyMainnetDAOFork(c, h, s, raw))
+	require.Equal(t, common.BigToHash(h.Number), s.GetState(mparams.ChainTallyAddr, mainnetDAOAppliedSlot))
+}
+
 func TestMainnetDAORefusesUnsafeInputsBeforeAnyStateWrite(t *testing.T) {
 	for _, name := range []string{"artifact", "native threshold", "anchor", "wrong fork", "legacy owner", "legacy code", "original implementation", "clock", "occupied target", "occupied storage", "partial marker", "missing parent", "notice", "evm floor", "old profile"} {
 		t.Run(name, func(t *testing.T) {
@@ -188,7 +207,7 @@ func TestMainnetDAORefusesUnsafeInputsBeforeAnyStateWrite(t *testing.T) {
 			case "missing parent":
 				h.ParentHash = common.Hash{}
 			case "notice":
-				c.c.BdagMainnetDAO.NotBeforeTimestamp = c.c.BdagMainnetDAO.NoticePublishedAt + 86400
+				c.c.BdagMainnetDAO.NotBeforeTimestamp = c.c.BdagMainnetDAO.NoticePublishedAt - 1
 			case "evm floor":
 				c.c.BdagMainnetDAO.EarliestEVMBlock = 0
 			case "old profile":

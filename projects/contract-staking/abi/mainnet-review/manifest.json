@@ -1,0 +1,44 @@
+{
+  "schema": "bdag.mainnet-contract-review.v1",
+  "installationAuthorized": false,
+  "productionAddressesApproved": false,
+  "nativeInstallerSealed": false,
+  "contracts": [
+    {
+      "name": "MainnetLegacyStaking",
+      "source": "contracts/staking/MainnetLegacyStaking.sol",
+      "abiSha256": "3552c123ffb48992fa81e32aba4b2673bef8bad70553141276aa5c0a2ea2e9de",
+      "storageSha256": "7b506ee1eebfc261fe8f357739fb40033cc43a1cc80f2658929ba6b0d05ad0f9",
+      "compiler": "0.8.24+commit.e11b9ed9",
+      "evmVersion": "london",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "unboundRuntimeBytes": 14013,
+      "constructorImmutableBindingRequired": true
+    },
+    {
+      "name": "MainnetStakingV2",
+      "source": "contracts/staking/MainnetStakingV2.sol",
+      "abiSha256": "a51c59ad552dd4691e73e174d169b4d7485355b2a15cd1f9cd4754ac166fcf27",
+      "storageSha256": "a663980fa690545f7ecef217b35c3ea09625f38f1dee649b95dd260e713c33e8",
+      "compiler": "0.8.24+commit.e11b9ed9",
+      "evmVersion": "london",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "unboundRuntimeBytes": 20808,
+      "constructorImmutableBindingRequired": true
+    }
+  ],
+  "inputs": {
+    "package-lock.json": "a60852284dddc909d7e3127d50f322847774d29831552976f3d3dc008739a42d",
+    "hardhat.config.js": "41fa50423e91c4697fb1392c4bf437294e316e9c249a1c201aaa92c46215e71e",
+    "contracts/staking/StakingPool.sol": "14abd668789bc9d7a06684d7ad4538713b0136d479a24e41d26c5712ce18e0ce",
+    "contracts/staking/SeparatedStakingBase.sol": "240fe6cea6eaa291c2722f360e087fd566f0c542a1157efe72b93202956b8d71",
+    "contracts/staking/MainnetLegacyStaking.sol": "244cb064799c476b3a00ab3d57644678fc5b4e88448e6bb33cd560ac440a5b37",
+    "contracts/staking/MainnetStakingV2.sol": "070ea5043a1e9786ebc9a7cfdf3216049c45871b281e7947488137bd4f3f13e8"
+  }
+}

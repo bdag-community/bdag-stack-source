@@ -1,1 +1,11 @@
-null
+{
+  "version": 1,
+  "artifactSha256": "0xd64f893f7d1eae52b369d59d434f7c5f6745794fb0610a7d71456022d38aa33f",
+  "signalStartLayer": 22419500,
+  "activationDelayLayers": 2000,
+  "earliestEvmBlock": 29421225,
+  "releaseDistributedAt": 0,
+  "noticePublishedAt": 0,
+  "notBeforeTimestamp": 0,
+  "legacyGenesisTime": 1770760980
+}

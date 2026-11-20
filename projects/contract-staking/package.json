@@ -1,0 +1,51 @@
+{
+    "name": "blockdag-contracts",
+    "version": "1.0.0",
+    "description": "BlockDAG Contracts Monorepo",
+    "main": "index.js",
+    "scripts": {
+        "compile": "hardhat compile",
+        "test": "hardhat test",
+        "test:mainnet-migration": "hardhat test --config hardhat.mainnet-rehearsal.config.cjs",
+        "stake": "hardhat run scripts/staking/stake.js",
+        "unstake": "hardhat run scripts/staking/unstake.js",
+        "claim": "hardhat run scripts/staking/claim.js",
+        "deploy:staking": "hardhat run scripts/staking/deploy-proxy.js",
+        "initialize:staking": "hardhat run scripts/staking/initialize.js",
+        "bump-nonce": "hardhat run scripts/utils/bump-nonce.js",
+        "layout": "hardhat check",
+        "test:layout": "hardhat test test/StorageLayout.test.js",
+        "export:artifacts": "hardhat run scripts/staking/export-artifacts.js",
+        "abi:export": "hardhat run scripts/abi/export-abi.js",
+        "abi:sync": "ABI_SYNC=1 hardhat run scripts/abi/export-abi.js",
+        "devnet:seed": "hardhat run scripts/devnet/seed-stakers.js --network devnet",
+        "devnet:snapshot": "hardhat run scripts/devnet/snapshot-state.js --network devnet",
+        "devnet:upgrade-v2": "hardhat run scripts/devnet/upgrade-to-v2.js --network devnet",
+        "devnet:verify-v2": "hardhat run scripts/devnet/verify-v2.js --network devnet",
+        "devnet:init-v2": "hardhat run scripts/devnet/init-v2-after-fork.js --network devnet",
+        "qualify:mainnet-multisig": "hardhat run --config hardhat.mainnet-rehearsal.config.cjs scripts/release/qualify-mainnet-multisig.cjs",
+        "prepare:mainnet": "hardhat run --config hardhat.mainnet-rehearsal.config.cjs scripts/release/export-mainnet-preparation.cjs"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "@nomicfoundation/hardhat-ethers": "^3.1.3",
+        "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+        "@openzeppelin/hardhat-upgrades": "^3.9.1",
+        "@safe-global/safe-smart-account": "1.5.0",
+        "chai": "^4.5.0",
+        "dotenv": "^17.2.3",
+        "ethers": "^6.16.0",
+        "hardhat": "^2.19.0",
+        "hardhat-storage-layout": "^0.1.7"
+    },
+    "dependencies": {
+        "@openzeppelin/contracts": "^5.0.0",
+        "@openzeppelin/contracts-upgradeable": "^5.0.0",
+        "csv-parser": "^3.2.0",
+        "express": "^4.22.1",
+        "keccak256": "^1.0.6",
+        "merkletreejs": "^0.6.0"
+    }
+}

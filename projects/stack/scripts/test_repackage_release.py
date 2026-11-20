@@ -31,12 +31,19 @@ class RepackageReleaseTest(unittest.TestCase):
                 z.writestr("old/release-payload.env", "BDAG_RELEASE_VERSION=stack-v0.1.0\nBDAG_STACK_RELEASE_TAG=stack-v0.1.0\n")
                 z.writestr("old/SOURCE.txt", "old source\n")
                 z.writestr("old/release-source-subjects.json", "{}")
+            node = path / "new-node"
+            worker = path / "new-worker"
+            node.write_bytes(b"replacement node")
+            worker.write_bytes(b"replacement worker")
             subprocess.run([sys.executable, str(SCRIPT), "--input", str(source),
                             "--output", str(dest), "--version", "stack-v0.1.1",
                             "--source-name", "source.zip", "--source-sha256", "a" * 64,
-                            "--subjects", str(subjects)], check=True, stdout=subprocess.PIPE)
+                            "--subjects", str(subjects), "--node-binary", str(node),
+                            "--nodeworker-binary", str(worker)], check=True, stdout=subprocess.PIPE)
             prefix = dest.stem + "/"
             with zipfile.ZipFile(dest) as z:
+                self.assertEqual(z.read(prefix + "bin/blockdag-node"), node.read_bytes())
+                self.assertEqual(z.read(prefix + "bin/nodeworker"), worker.read_bytes())
                 lines = z.read(prefix + "checksums.txt").decode().splitlines()
                 self.assertEqual(len(lines), len(BINARIES))
                 for line in lines:

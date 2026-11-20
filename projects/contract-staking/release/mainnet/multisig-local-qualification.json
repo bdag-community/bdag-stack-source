@@ -1,0 +1,59 @@
+{
+  "schema": "bdag.mainnet.multisig-local-qualification.v1",
+  "package": "@safe-global/safe-smart-account",
+  "version": "1.5.0",
+  "packageGitCommit": "dc437e8fba8b4805d76bcbd1c668c9fd3d1e83be",
+  "license": "LGPL-3.0",
+  "packageIntegrity": "sha512-VIMWxoeY/kNuZVsQVvAeOFKcQS3eojCXg0ecGnesBSLn5ypYshmBhVEEU5XiurJJGTs/MrcoLTbTxhs9W9GvdQ==",
+  "authorityInputSha256": "31f7ade8f9450847634067e6685a0471fbcc8347c49a408f829b2aa0b486c457",
+  "chainId": 1404,
+  "owners": [
+    "0xA5968191D122aF96fD7C43008a121A653536B86e",
+    "0x754cBD6A7f2B3485a00066422166eC63112bC6a1",
+    "0xE39302970855E5A7Af5790d7B3624c830e1aCE5f",
+    "0xFE248EdDAF92285551DB802661334E9702980752",
+    "0x1F4040F2bFDCdeD94f2d8f27Fcd930b6C67Ee5F1"
+  ],
+  "threshold": 3,
+  "initializer": "0xb63e800d00000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000000003000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001c000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000005000000000000000000000000a5968191d122af96fd7c43008a121a653536b86e000000000000000000000000754cbd6a7f2b3485a00066422166ec63112bc6a1000000000000000000000000e39302970855e5a7af5790d7b3624c830e1ace5f000000000000000000000000fe248eddaf92285551db802661334e97029807520000000000000000000000001f4040f2bfdcded94f2d8f27fcd930b6c67ee5f10000000000000000000000000000000000000000000000000000000000000000",
+  "saltNonce": "0xb1bbd1150b9ec0250d034479827f3b7bfddf300f43da571ac01ac375380e26f7",
+  "setupDelegatecall": false,
+  "fallbackHandler": "0x0000000000000000000000000000000000000000",
+  "modules": [],
+  "guard": "0x0000000000000000000000000000000000000000",
+  "setupPayment": "0",
+  "artifactPins": {
+    "Safe": {
+      "source": "Safe.sol/Safe.json",
+      "creationHash": "0x3c32e7eb3961c145eef8620b24e8b829e6d2062a5730629d6169319f29fc1d07",
+      "runtimeHash": "0xdda019cbd7c867a533a2a86e5c53434fdc50b13122b5a5ddb4a8df61b31c20f2"
+    },
+    "SafeProxy": {
+      "source": "proxies/SafeProxy.sol/SafeProxy.json",
+      "creationHash": "0x941b3e88811b2f33b8e26783c7407d2e978404581a21c9f07abf2cad9cb87e12",
+      "runtimeHash": "0x4e381985ca68b3e5d27b4425fa581c19cf33146d3f887a3cfca96f55528ea46f"
+    },
+    "SafeProxyFactory": {
+      "source": "proxies/SafeProxyFactory.sol/SafeProxyFactory.json",
+      "creationHash": "0xd8803696e4c627ba4cab33cfab2625cf66c88f218c017306e392fcf88cc4e0c6",
+      "runtimeHash": "0x967dae4cda22b0c9ef7f31b010bdc1ceb0af9904b0c3dc060b5302e4c18a4529"
+    }
+  },
+  "localConfigurationProof": {
+    "singleton": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "factory": "0xe7f1725E7734CE288F8367e1Bb143E90bb3F0512",
+    "wallet": "0x7479B5FedEAb27e9BC07438eD8a5c21b9304e4D7",
+    "threshold": 3
+  },
+  "realSignerControlProven": false,
+  "productionWalletAddress": null,
+  "productionRoleAssignments": [],
+  "deploymentAuthorized": false,
+  "extraMultisigApprovalOfDAOActions": false,
+  "limitations": [
+    "Configuration tested locally with supplied public owner addresses; real-signature threshold/replay tests use lab keys only.",
+    "Local deployment addresses are not approved production addresses. Verify actual deployment code, initializer, owners and threshold before any approved role binding.",
+    "Safe EIP-712 binds chain ID, wallet and nonce; identical-chain-ID fork replay must also be managed by verified canonical RPC/history and deployment context.",
+    "Owner/threshold/module changes are themselves governed by the current quorum; threshold is not claimed permanently immutable."
+  ]
+}

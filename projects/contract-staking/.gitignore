@@ -1,0 +1,21 @@
+node_modules
+cache
+artifacts
+.env
+coverage
+coverage.json
+typechain
+typechain-types
+.DS_Store
+# generated devnet artifacts (bytecode, genesis alloc, snapshots, seed keys)
+out/
+.openzeppelin/
+
+# Isolated local governance build outputs
+.phase1-cache/
+.phase1-artifacts/
+# Retained local RED/GREEN verification workspaces
+.tmp-full-london-20260908.config.cjs
+.tmp-full-london-artifacts-20260908/
+.tmp-full-london-cache-20260908/
+.tmp-veto-red-20260908/

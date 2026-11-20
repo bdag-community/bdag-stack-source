@@ -1,0 +1,18 @@
+{
+  "segments": [
+    {"firstEpoch":"0","startTime":"1000","duration":"60"},
+    {"firstEpoch":"10","startTime":"1600","duration":"1800"},
+    {"firstEpoch":"12","startTime":"5200","duration":"600"}
+  ],
+  "cases": [
+    {"timestamp":"999","floor":"0","epoch":"0","version":"1","start":"1000","end":"1060","duration":"60"},
+    {"timestamp":"1599","floor":"0","epoch":"9","version":"1","start":"1540","end":"1600","duration":"60"},
+    {"timestamp":"1600","floor":"0","epoch":"10","version":"2","start":"1600","end":"3400","duration":"1800"},
+    {"timestamp":"3399","floor":"0","epoch":"10","version":"2","start":"1600","end":"3400","duration":"1800"},
+    {"timestamp":"3400","floor":"0","epoch":"11","version":"2","start":"3400","end":"5200","duration":"1800"},
+    {"timestamp":"1599","floor":"11","epoch":"11","version":"2","start":"3400","end":"5200","duration":"1800"},
+    {"timestamp":"5200","floor":"0","epoch":"12","version":"3","start":"5200","end":"5800","duration":"600"},
+    {"timestamp":"5199","floor":"12","epoch":"12","version":"3","start":"5200","end":"5800","duration":"600"},
+    {"timestamp":"5799","floor":"0","epoch":"12","version":"3","start":"5200","end":"5800","duration":"600"}
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "purpose": "Exact existing blocklist sources for isolated local genesis and DAO-call tests; no source edits.",
+  "files": [
+    {
+      "source": "blockdag-corechain/bevm/Contract-Blocklist/src/BlocklistGovernance.sol",
+      "copy": "BlocklistGovernance.sol",
+      "sha256": "a793b299f9b7c5f9003672fb5262f6b3f02cd7c617cbcdca90b6e6f2a6ae0a4a"
+    },
+    {
+      "source": "blockdag-corechain/bevm/Contract-Blocklist/src/SelectiveBlocklist.sol",
+      "copy": "SelectiveBlocklist.sol",
+      "sha256": "5ad189309d041a3fcdbc80eec423590fc3358ff607b7c5b952c96f9dbde497e3"
+    }
+  ]
+}

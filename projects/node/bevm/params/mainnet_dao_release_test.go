@@ -18,8 +18,17 @@ func validMainnetDAOConfig() *ethparams.BDAGMainnetDAOConfig {
 		LegacyGenesisTime: 1770760980}
 }
 
-func TestMainnetDAOProfileIsUnsealedAndHasNoRuntimeOverride(t *testing.T) {
-	require.Nil(t, BdagMainnetChainConfig.BdagMainnetDAO)
+func TestMainnetDAOProfileIsSealedAndHasNoRuntimeOverride(t *testing.T) {
+	require.NotNil(t, BdagMainnetDAO)
+	require.Equal(t, BdagMainnetDAO, BdagMainnetChainConfig.BdagMainnetDAO)
+	require.NoError(t, BdagMainnetDAO.Validate(big.NewInt(1404)))
+	require.EqualValues(t, 22419500, BdagMainnetDAO.SignalStartLayer)
+	require.EqualValues(t, 29421225, BdagMainnetDAO.EarliestEVMBlock)
+	require.EqualValues(t, 2000, BdagMainnetDAO.ActivationDelayLayers)
+	require.Zero(t, BdagMainnetDAO.ReleaseDistributedAt)
+	require.Zero(t, BdagMainnetDAO.NoticePublishedAt)
+	require.Zero(t, BdagMainnetDAO.NotBeforeTimestamp)
+	require.Equal(t, common.HexToHash("0xd64f893f7d1eae52b369d59d434f7c5f6745794fb0610a7d71456022d38aa33f"), BdagMainnetDAO.ArtifactSHA256)
 	require.Nil(t, BdagTestnetChainConfig.BdagMainnetDAO)
 	require.Nil(t, BdagDevnetChainConfig.BdagMainnetDAO)
 	got, err := ParseMainnetDAORelease([]byte("null"))
@@ -29,17 +38,30 @@ func TestMainnetDAOProfileIsUnsealedAndHasNoRuntimeOverride(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestMainnetDAOProductionPolicyCannotUseTestnetTimings(t *testing.T) {
+func TestMainnetDAOProductionPolicyValidatesTimingMetadata(t *testing.T) {
 	good := validMainnetDAOConfig()
 	require.NoError(t, good.Validate(big.NewInt(1404)))
+	// No extra notice or distribution interval is required for Mainnet.
+	withoutNotice := *good
+	withoutNotice.ReleaseDistributedAt = 0
+	withoutNotice.NoticePublishedAt = 0
+	withoutNotice.NotBeforeTimestamp = 0
+	require.NoError(t, withoutNotice.Validate(big.NewInt(1404)))
+	noDelay := *good
+	noDelay.NoticePublishedAt = noDelay.ReleaseDistributedAt
+	noDelay.NotBeforeTimestamp = noDelay.ReleaseDistributedAt
+	require.NoError(t, noDelay.Validate(big.NewInt(1404)))
 	for _, mutate := range []func(*ethparams.BDAGMainnetDAOConfig){
 		func(c *ethparams.BDAGMainnetDAOConfig) { c.SignalStartLayer = 0 },
 		func(c *ethparams.BDAGMainnetDAOConfig) { c.SignalStartLayer = math.MaxUint64 - 1000 },
 		func(c *ethparams.BDAGMainnetDAOConfig) { c.ActivationDelayLayers = 1999 },
 		func(c *ethparams.BDAGMainnetDAOConfig) { c.EarliestEVMBlock = 0 },
 		func(c *ethparams.BDAGMainnetDAOConfig) { c.LegacyGenesisTime = 0 },
-		func(c *ethparams.BDAGMainnetDAOConfig) { c.NotBeforeTimestamp = c.NoticePublishedAt + 86400 },
-		func(c *ethparams.BDAGMainnetDAOConfig) { c.ReleaseDistributedAt = c.NotBeforeTimestamp - 86400 },
+		func(c *ethparams.BDAGMainnetDAOConfig) { c.NotBeforeTimestamp = c.NoticePublishedAt - 1 },
+		func(c *ethparams.BDAGMainnetDAOConfig) { c.NoticePublishedAt = c.ReleaseDistributedAt - 1 },
+		func(c *ethparams.BDAGMainnetDAOConfig) { c.ReleaseDistributedAt = 0 },
+		func(c *ethparams.BDAGMainnetDAOConfig) { c.NoticePublishedAt = 0 },
+		func(c *ethparams.BDAGMainnetDAOConfig) { c.NotBeforeTimestamp = 0 },
 		func(c *ethparams.BDAGMainnetDAOConfig) { c.ArtifactSHA256 = common.Hash{} },
 	} {
 		copy := *good

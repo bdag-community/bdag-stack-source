@@ -1,0 +1,19 @@
+{
+  "provenance": "14 historical entries audited30October2026; read current state, do not restore a historical block list",
+  "accounts": [
+    "0x04dcf6a45e169020ed4ae78a3b627c5aada35355",
+    "0x14143445822f03796a7301b0ce5b437d3070474d",
+    "0x1b277f2edfc4fdf732e4d683f7c12c832a6bcb89",
+    "0x35e7f8f1031b2bf364a88fde7fdda80fce8c3bbe",
+    "0x4938df5b0eaf8130ca128e480812c2cc5c70b6c4",
+    "0x558999486d976ec2ddc18da9a97c7ccb78d9bd18",
+    "0x68f4cf37ce5be16b3076761020f42685a544e2e9",
+    "0x74c0e51805674c4b482f749ebdedf78c816458ec",
+    "0x86790abbaccd1b21f5ecfdaa67ec6282afbf3e83",
+    "0xb685760ebd368a891f27ae547391f4e2a289895b",
+    "0xc0ac84130313a5dd78097c62516a9d1f9f47b204",
+    "0xd8a5d6df7f3a1d57cdc9661f4a8132e9206b00d5",
+    "0xf1c4393fc08a965034063d637e3c965048a0e5f2",
+    "0xf417719986a694a71c3ac3095c103802846c3ff4"
+  ]
+}

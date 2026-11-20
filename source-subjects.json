@@ -1,5 +1,11 @@
 {
   "projects": {
+    "contract-staking": {
+      "excluded": [],
+      "purpose": "exact Solidity source used to reproduce the embedded Mainnet migration bundle",
+      "repository": "https://github.com/bdag-community/Contract-Staking",
+      "source_commit": "23193fe9352363d05367e8637ce5dbcfc9a6bce0"
+    },
     "dashboard": {
       "excluded": [],
       "license_commit": "2d3ade411869e10a79690d690476d5ff5478f6d9",
@@ -11,9 +17,9 @@
     },
     "node": {
       "excluded": [],
-      "note": "JH and Groestl replaced with MIT-licensed sphlib; unused unlicensed token removed",
+      "note": "Mainnet DAO and Staking V2 release profile sealed; JH and Groestl use MIT-licensed sphlib",
       "prior_live_source_commit": "4e1c022e57eb0cb690fcd0908a8df715b854f8c9",
-      "source_commit": "2cc70ffd84eb45a716862b28f95f6fa4b6add632"
+      "source_commit": "3ca25e9d4884cce59336ad3c9e3427ddb762a7ab"
     },
     "node-dashboard": {
       "excluded": [

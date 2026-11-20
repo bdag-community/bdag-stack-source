@@ -1,0 +1,48 @@
+{
+  "schema": "bdag.mainnet.authority-inputs.v1",
+  "chainId": 1404,
+  "genesisHash": "0x3fb19ea409ac7399ad7b988b88e0d436722c967137e51e834ccefd7611a592ef",
+  "genesisStateRoot": "0x564aeb23c21b395f94839991240f0665fdf6b083cad3a41ac6412fa2180ac76a",
+  "threshold": 3,
+  "signers": [
+    {
+      "name": "Duncan",
+      "address": "0xA5968191D122aF96fD7C43008a121A653536B86e"
+    },
+    {
+      "name": "Pieter",
+      "address": "0x754cBD6A7f2B3485a00066422166eC63112bC6a1"
+    },
+    {
+      "name": "Jeremy",
+      "address": "0xE39302970855E5A7Af5790d7B3624c830e1aCE5f"
+    },
+    {
+      "name": "Matt",
+      "address": "0xFE248EdDAF92285551DB802661334E9702980752"
+    },
+    {
+      "name": "Francois",
+      "address": "0x1F4040F2bFDCdeD94f2d8f27Fcd930b6C67Ee5F1"
+    }
+  ],
+  "reviewers": [
+    {
+      "name": "Francois",
+      "address": "0x1F4040F2bFDCdeD94f2d8f27Fcd930b6C67Ee5F1"
+    },
+    {
+      "name": "Duncan",
+      "address": "0xA5968191D122aF96fD7C43008a121A653536B86e"
+    },
+    {
+      "name": "Pieter",
+      "address": "0x754cBD6A7f2B3485a00066422166eC63112bC6a1"
+    }
+  ],
+  "reviewerSelectionApprovedBy": "Francois",
+  "reviewerSelectionApprovedOn": "2026-11-03",
+  "signerControlProofVerified": false,
+  "deploymentAuthorized": false,
+  "extraMultisigApprovalOfDAOActions": false
+}

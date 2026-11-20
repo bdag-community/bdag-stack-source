@@ -1,0 +1,9 @@
+{
+  "package": "@openzeppelin/contracts",
+  "version": "5.4.0",
+  "originalPath": "node_modules/@openzeppelin/contracts/utils/Bytes.sol",
+  "originalSha256": "b8ecad25855c07fe0c65cffaf19c1517751b2837640f8a144ab26d5bf4e6f741",
+  "replacementSha256": "551cb80088e0dc0c9adc4dadc644e8d5c6d888317136a25697bad942e7181e87",
+  "patch": "Only Bytes.slice MCOPY assembly replaced by a bounds-checked Solidity byte-copy loop. No API or clamping changes. Node_modules unchanged.",
+  "scope": "hardhat.phase1.config.cjs local London compilation only; native exports must use that config."
+}

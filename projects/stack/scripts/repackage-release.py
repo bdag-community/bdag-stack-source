@@ -22,7 +22,15 @@ def main():
     parser.add_argument("--source-name", required=True)
     parser.add_argument("--source-sha256", required=True)
     parser.add_argument("--subjects", required=True, type=pathlib.Path)
+    parser.add_argument("--node-binary", type=pathlib.Path)
+    parser.add_argument("--nodeworker-binary", type=pathlib.Path)
     args = parser.parse_args()
+    if bool(args.node_binary) != bool(args.nodeworker_binary):
+        parser.error("both replacement node binaries are required")
+    overrides = {"bin/blockdag-node": args.node_binary, "bin/nodeworker": args.nodeworker_binary} if args.node_binary else {}
+    for path in overrides.values():
+        if not path.is_file():
+            parser.error(f"replacement binary is not a file: {path}")
     if not re.fullmatch(r"stack-v[0-9]+\.[0-9]+\.[0-9]+", args.version):
         parser.error("invalid release version")
     if not re.fullmatch(r"[0-9a-f]{64}", args.source_sha256):
@@ -65,7 +73,7 @@ def main():
             clone.external_attr = info.external_attr
             clone.create_system = info.create_system
             h = hashlib.sha256() if rel.startswith("bin/") and not info.is_dir() else None
-            with old.open(info) as source, out.open(clone, "w") as target:
+            with (overrides[rel].open("rb") if rel in overrides else old.open(info)) as source, out.open(clone, "w") as target:
                 while chunk := source.read(1024 * 1024):
                     target.write(chunk)
                     if h:

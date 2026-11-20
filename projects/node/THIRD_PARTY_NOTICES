@@ -17,6 +17,7 @@ hash identifies the inspected snapshot, not a permission grant.
 | logging helper | `log/**` | Apache-2.0, Alan Shreve. Preserved text: `LICENSES/Apache-2.0-log.txt` and canonical text `LICENSES/Apache-2.0.txt`. |
 | Cuckaroom | `crypto/cuckoo/**` | Apache-2.0 header naming BlockCypher. See `crypto/cuckoo/cuckaroom.go` and `LICENSES/Apache-2.0.txt`. |
 | BlockDAG crypto fork | `common/hash/**`, module `github.com/BlockdagNetworkLabs/crypto` at `aa4cf9dc20f8` | Module cache supplies Go Authors BSD text. Preserve module `LICENSE`; exact fork provenance remains under review. |
+| Go YAML v3 test dependency | `go.yaml.in/yaml/v3` v3.0.5 | MIT and Apache-2.0 as described by the upstream license; retained in `LICENSES/MIT-Apache-2.0-go-yaml-v3.txt` and `LICENSES/NOTICE-go-yaml-v3.txt`. |
 | CryptoNight fork | `deps/cryptonight/**` | Equim MIT license preserved in `deps/cryptonight/LICENSE`. JH and Grøstl are replaced with independently authored MIT-licensed sphlib implementations; original notices and license are retained under `deps/cryptonight/{jh,groestl}/` and provenance is in `deps/cryptonight/NOTICE-BDAG`. |
 
 The local `common/util/hexutil` duplicate was retired. Runtime users now use

@@ -36,10 +36,16 @@ func (c *BDAGMainnetDAOConfig) Validate(chainID *big.Int) error {
 		c.SignalStartLayer+99999 > math.MaxUint64-c.ActivationDelayLayers {
 		return fmt.Errorf("invalid Mainnet DAO signal window/delay")
 	}
-	if c.ReleaseDistributedAt == 0 || c.NoticePublishedAt < c.ReleaseDistributedAt ||
-		c.NotBeforeTimestamp < c.NoticePublishedAt || c.NotBeforeTimestamp-c.NoticePublishedAt < 604800 ||
-		c.NotBeforeTimestamp-c.ReleaseDistributedAt < 3628800 || c.LegacyGenesisTime > c.ReleaseDistributedAt {
-		return fmt.Errorf("Mainnet DAO requires six-week distribution and seven-day notice")
+	// A zero triplet means no additional distribution/notice waiting interval.
+	// If timestamps are provided, preserve their order and never accept partial
+	// metadata. Native signalling, the layer delay and the staking epoch boundary
+	// remain independently enforced by their respective consensus rules.
+	if c.ReleaseDistributedAt != 0 || c.NoticePublishedAt != 0 || c.NotBeforeTimestamp != 0 {
+		if c.ReleaseDistributedAt == 0 || c.NoticePublishedAt == 0 || c.NotBeforeTimestamp == 0 ||
+			c.NoticePublishedAt < c.ReleaseDistributedAt || c.NotBeforeTimestamp < c.NoticePublishedAt ||
+			c.LegacyGenesisTime > c.ReleaseDistributedAt {
+			return fmt.Errorf("invalid Mainnet DAO distribution or notice timing metadata")
+		}
 	}
 	return nil
 }
