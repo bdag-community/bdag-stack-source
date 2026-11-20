@@ -1,0 +1,14 @@
+{
+  "accepted": true,
+  "final": true,
+  "retryable": false,
+  "code": "accepted",
+  "message": "accepted",
+  "block_hash": "0x0000000000000000000000000000000000000000000000000000000000000101",
+  "coinbase_txid": "0x0000000000000000000000000000000000000000000000000000000000000201",
+  "order": "101",
+  "height": 101,
+  "coinbase_amount": 10,
+  "miner_type": "GBT",
+  "template_seq": 42
+}

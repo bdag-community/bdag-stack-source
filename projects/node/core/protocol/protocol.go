@@ -1,0 +1,80 @@
+// Copyright (c) 2013-2016 The btcsuite developers
+// Copyright (c) 2015-2017 The Decred developers
+// Use of this source code is governed by an ISC
+// license that can be found in the LICENSE file.
+
+package protocol
+
+import (
+	"fmt"
+)
+
+const (
+	// InitialProcotolVersion is the initial protocol version for the
+	// network.
+	InitialProcotolVersion uint32 = 42
+
+	// Support check data consistency
+	ConsistencyProtocolVersion uint32 = 43
+
+	// Support continue block sync for DAG search
+	ConSyncDAGProtocolVersion uint32 = 44
+
+	// Support continue block sync for DAG search
+	BroadcastblockProtocolVersion uint32 = 45
+
+	// Support EVM checkpoint exchange during peer chain-state validation.
+	EVMCheckpointProtocolVersion uint32 = 46
+
+	// Support length-delimited multi-message decode on a single libp2p
+	// stream (exact-size ReadFull rather than ReadAll-until-EOF). Peers
+	// advertising this version can accept a reused/pooled stream that is
+	// not half-closed after each request; older peers still need the
+	// one-shot half-close to finish decoding.
+	StreamReuseProtocolVersion uint32 = 47
+
+	// ProtocolVersion is the latest protocol version this package supports.
+	ProtocolVersion uint32 = StreamReuseProtocolVersion
+)
+
+// Network represents which Blockdag network a message belongs to.
+type Network uint32
+
+// Constants used to indicate the message of network.  They can also be
+// used to seek to the next message when a stream's state is unknown, but
+// this package does not provide that functionality since it's generally a
+// better idea to simply disconnect clients that are misbehaving over TCP.
+const (
+	// MainNet represents the main network.
+	MainNet Network = 0xb4c3dce8
+
+	// TestNet2 represents the test network.
+	TestNet Network = 0x35e0c424
+
+	// PrivNet represents the private test network.
+	PrivNet Network = 0xf1eb0001
+
+	// MixNet represents the Mix Pow network.
+	MixNet Network = 0xc459b247
+
+	// DevNet represents the development network.
+	DevNet Network = 0x80808080
+)
+
+// bnStrings is a map of networks back to their constant names for
+// pretty printing.
+var bnStrings = map[Network]string{
+	MainNet: "MainNet",
+	TestNet: "TestNet",
+	PrivNet: "PrivNet",
+	MixNet:  "MixNet",
+	DevNet:  "DevNet",
+}
+
+// String returns the CurrencyNet in human-readable form.
+func (n Network) String() string {
+	if s, ok := bnStrings[n]; ok {
+		return s
+	}
+	return fmt.Sprintf("Unknown Network (%d)", uint32(n))
+}

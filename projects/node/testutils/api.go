@@ -1,0 +1,109 @@
+package testutils
+
+// import (
+// 	"encoding/hex"
+// 	"strconv"
+
+// 	"github.com/BlockdagNetworkLabs/bdag/core/json"
+// 	"github.com/BlockdagNetworkLabs/bdag/core/types"
+// 	"github.com/BlockdagNetworkLabs/bdag/core/types/pow"
+// 	"github.com/ethereum/go-ethereum/common"
+// )
+
+// func (c *Client) NodeInfo() (json.InfoNodeResult, error) {
+// 	var result json.InfoNodeResult
+// 	if err := c.Call(&result, "getNodeInfo"); err != nil {
+// 		return result, err
+// 	}
+// 	return result, nil
+// }
+
+// func (c *Client) BlockCount() (uint64, error) {
+// 	var result uint64
+// 	if err := c.Call(&result, "getBlockCount"); err != nil {
+// 		return result, err
+// 	}
+// 	return result, nil
+// }
+
+// func (c *Client) BlockTotal() (uint64, error) {
+// 	var result uint64
+// 	if err := c.Call(&result, "getBlockTotal"); err != nil {
+// 		return result, err
+// 	}
+// 	return result, nil
+// }
+
+// func (c *Client) MainHeight() (uint64, error) {
+// 	var result string
+// 	if err := c.Call(&result, "getMainChainHeight"); err != nil {
+// 		return 0, err
+// 	}
+// 	if height, err := strconv.Atoi(result); err != nil {
+// 		return 0, err
+// 	} else {
+// 		return uint64(height), nil
+// 	}
+// }
+
+// func (c *Client) Generate(num uint64) ([]*common.Hash, error) {
+// 	var result []*common.Hash
+// 	if err := c.Call(&result, "miner_generate", num, pow.PowType(0)); err != nil {
+// 		return result, err
+// 	}
+// 	return result, nil
+// }
+
+// func (c *Client) SendRawTx(txHex string, allowHighFees bool) (*common.Hash, error) {
+
+// 	//fmt.Printf("send rawtx=%s\n", txHex)
+// 	var result *common.Hash
+// 	if err := c.Call(&result, "sendRawTransaction", txHex, allowHighFees); err != nil {
+// 		return nil, err
+// 	}
+// 	return result, nil
+// }
+
+// // TODO, the SerializedBlock not work for order and height
+// func (c *Client) GetSerializedBlock(h *common.Hash) (*types.SerializedBlock, error) {
+// 	var blockHex string
+// 	if err := c.Call(&blockHex, "getBlock", h.String(), false); err != nil {
+// 		return nil, err
+// 	}
+// 	// Decode the serialized block hex to raw bytes.
+// 	serializedBlock, err := hex.DecodeString(blockHex)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	// Deserialize the block and return it.
+// 	block, err := types.NewBlockFromBytes(serializedBlock)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return block, nil
+// }
+
+// // TODO, the api is not easy to use when doing the internal-test
+// func (c *Client) GetBlock(h *common.Hash) (*json.BlockVerboseResult, error) {
+// 	var result json.BlockVerboseResult
+// 	if err := c.Call(&result, "getBlockV2", h.String(), true, true, true); err != nil {
+// 		return nil, err
+// 	}
+// 	return &result, nil
+// }
+
+// func (c *Client) CreateExportRawTx(txid, pkaddress string, vout uint32, amount int64) (string, error) {
+// 	var rawstring string
+// 	if err := c.Call(&rawstring, "createExportRawTransaction", txid, vout, pkaddress, amount); err != nil {
+// 		return "", err
+// 	}
+// 	return rawstring, nil
+// }
+
+// func (c *Client) TestSign(privateKey, rawStr, tokenPrivateKey string) (string, error) {
+// 	var hexbalance string
+// 	if err := c.Call(&hexbalance, "test_txSign", privateKey, rawStr, tokenPrivateKey); err != nil {
+// 		return "", err
+// 	}
+// 	return hexbalance, nil
+// }

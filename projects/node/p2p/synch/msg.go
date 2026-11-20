@@ -1,0 +1,81 @@
+package synch
+
+import (
+	"github.com/BlockdagNetworkLabs/bdag/p2p/peers"
+	pb "github.com/BlockdagNetworkLabs/bdag/p2p/proto/v1"
+	"github.com/ethereum/go-ethereum/common"
+	"github.com/libp2p/go-libp2p/core/network"
+	"github.com/libp2p/go-libp2p/core/peer"
+)
+
+type pauseMsg struct {
+	unpause chan bool
+}
+
+type ConnectedMsg struct {
+	ID   peer.ID
+	Conn network.Conn
+}
+
+type DisconnectedMsg struct {
+	ID   peer.ID
+	Conn network.Conn
+}
+
+type GetBlocksMsg struct {
+	pe     *peers.Peer
+	blocks []*common.Hash
+}
+
+type GetBlockDatasMsg struct {
+	pe     *peers.Peer
+	blocks []*common.Hash
+}
+
+type GetDatasMsg struct {
+	pe   *peers.Peer
+	data *pb.Inventory
+}
+
+// type OnFilterAddMsg struct {
+// 	pe   *peers.Peer
+// 	data *types.MsgFilterAdd
+// }
+
+// type OnFilterClearMsg struct {
+// 	pe   *peers.Peer
+// 	data *types.MsgFilterClear
+// }
+
+// type OnFilterLoadMsg struct {
+// 	pe   *peers.Peer
+// 	data *types.MsgFilterLoad
+// }
+
+type OnMsgMemPool struct {
+	pe   *peers.Peer
+	data *MsgMemPool
+}
+
+type UpdateGraphStateMsg struct {
+	pe *peers.Peer
+}
+
+type syncDAGBlocksMsg struct {
+	pe *peers.Peer
+}
+
+type PeerUpdateMsg struct {
+	pe     *peers.Peer
+	orphan bool
+}
+
+type getTxsMsg struct {
+	pe  *peers.Peer
+	txs []*common.Hash
+}
+
+type SyncQNRMsg struct {
+	pe  *peers.Peer
+	qnr string
+}

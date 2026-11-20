@@ -1,0 +1,31 @@
+# Devnet build of the BlockDAG node. Same two stages as ../Dockerfile, but:
+#  - go.mod/go.sum are copied first and modules/build cache are BuildKit cache
+#    mounts, so rebuilds after a source edit take minutes, not a cold 15+ min build;
+#  - RELEASE_TAG=dev uses the Makefile's explicit unqualified development path;
+#  - curl is added to the runtime image for compose healthchecks.
+# Build from the repo root: docker build -f docker/Dockerfile.devnet --build-arg RELEASE_TAG=dev -t bdag-devnet:v1 .
+FROM golang:1.26.9-bookworm@sha256:d9c68c2c51161e12fd77e4c6320687c9cd86e1af1e3ad6e6cd63ff970641453c AS build
+ENV CGO_ENABLED=1
+ARG RELEASE_TAG=dev
+ARG GOFLAGS=
+ENV GOFLAGS=${GOFLAGS}
+WORKDIR /bdag
+RUN apt-get update && apt-get install -y --no-install-recommends make git gcc g++ libc6-dev
+COPY go.mod go.sum ./
+COPY deps/go-ethereum/go.mod deps/go-ethereum/go.sum ./deps/go-ethereum/
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    make all RELEASE_TAG=${RELEASE_TAG}
+
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata curl \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /bdag
+COPY --from=build /bdag/build/bin/bdag          /usr/local/bin/bdag
+COPY --from=build /bdag/build/bin/nodeworker    /usr/local/bin/nodeworker
+COPY --from=build /bdag/build/bin/bdag-cpuminer /usr/local/bin/bdag-cpuminer
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN sed -i "s/\r$//" /usr/local/bin/entrypoint.sh \
+ && chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/bdag /usr/local/bin/nodeworker /usr/local/bin/bdag-cpuminer
+ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

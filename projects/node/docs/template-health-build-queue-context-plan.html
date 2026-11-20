@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Template Health Build Queue Context</title>
+  <style>
+    :root { color-scheme: light dark; --bg:#f7f8fb; --panel:#fff; --ink:#1d2433; --line:#d8deea; --accent:#1769aa; --ok:#1b7f4b; --warn:#9a5200; }
+    body { margin:0; font:15px/1.5 system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:var(--bg); color:var(--ink); }
+    main { max-width:1120px; margin:0 auto; padding:32px 20px 48px; }
+    header { border-bottom:1px solid var(--line); margin-bottom:24px; padding-bottom:18px; }
+    h1 { margin:0 0 8px; font-size:28px; letter-spacing:0; }
+    h2 { margin:28px 0 12px; font-size:18px; }
+    p { margin:0 0 12px; }
+    code { background:rgba(23,105,170,.08); border:1px solid rgba(23,105,170,.18); border-radius:4px; padding:1px 5px; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(255px,1fr)); gap:12px; }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
+    .tag { display:inline-block; border-radius:999px; padding:2px 8px; margin:0 6px 6px 0; font-size:12px; font-weight:650; background:rgba(23,105,170,.1); color:var(--accent); }
+    .ok { color:var(--ok); font-weight:650; }
+    .warn { color:var(--warn); font-weight:650; }
+    li { margin:6px 0; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Template Health Build Queue Context</h1>
+    <p>
+      <span class="tag">Repo: blockdag-corechain</span>
+      <span class="tag">Branch: feature/corechain-template-health-build-queue-context</span>
+      <span class="tag">Base: feature/corechain-nodeworker-template-health-context</span>
+      <span class="tag">Risk: low</span>
+    </p>
+    <p>This task adds advisory source-level visibility into whether a template rebuild is already queued when mining health is inspected.</p>
+  </header>
+
+  <section class="grid">
+    <article class="card">
+      <h2>Problem</h2>
+      <p><code>getTemplateHealth</code> reports the last template build, but not whether a new build is currently pending. Operators still have to guess whether a stale-looking template is actively being worked through.</p>
+    </article>
+    <article class="card">
+      <h2>Goal</h2>
+      <p>Expose <code>pending_template_build</code>, reason, and priority, plus last build age, as advisory fields for dashboards, watchdogs, and nodeworker logs.</p>
+    </article>
+    <article class="card">
+      <h2>Boundary</h2>
+      <p class="ok">Do not consume the queue, change template scheduling, change mining policy, or make pending queue state restart-eligible.</p>
+    </article>
+  </section>
+
+  <h2>Definition Of Done</h2>
+  <ul>
+    <li>Design committed before code.</li>
+    <li>Health RPC includes pending build context when a request is queued.</li>
+    <li>Nodeworker can decode and print this advisory context.</li>
+    <li>Tests prove pending build state does not change <code>MineableNow</code>, <code>SubmitReady</code>, or restart eligibility.</li>
+  </ul>
+</main>
+<script type="application/json" id="agent-metadata">
+{
+  "repo": "BlockdagEngineering/blockdag-corechain",
+  "branch": "feature/corechain-template-health-build-queue-context",
+  "base_branch": "feature/corechain-nodeworker-template-health-context",
+  "live_services_touched": false,
+  "target_files": [
+    "docs/template-health-build-queue-context-plan.html",
+    "core/json/blocktemplate.go",
+    "services/miner/health.go",
+    "services/miner/miner.go",
+    "services/miner/miner_test.go",
+    "cmd/nodeworker/worker.go",
+    "cmd/nodeworker/worker_test.go"
+  ]
+}
+</script>
+</body>
+</html>

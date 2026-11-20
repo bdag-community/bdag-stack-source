@@ -1,0 +1,14 @@
+{
+  "accepted": false,
+  "final": true,
+  "retryable": false,
+  "code": "already_rejected",
+  "message": "exact block is already recorded as rejected by the local DAG",
+  "block_hash": "0x0000000000000000000000000000000000000000000000000000000000000105",
+  "coinbase_txid": "",
+  "order": "",
+  "height": 0,
+  "coinbase_amount": 0,
+  "miner_type": "GBT",
+  "template_seq": 42
+}

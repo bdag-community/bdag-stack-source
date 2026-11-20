@@ -1,0 +1,18 @@
+docker/data/
+
+build/
+
+# Local node and build data
+/bdag
+/nodeworker
+/data/
+/logs/
+/remote-data/
+/remote-data-synced/
+/cmd/bdag/data/
+/cmd/bdag/logs/
+*.network.key
+network.key
+.env
+.env.*
+!.env.example

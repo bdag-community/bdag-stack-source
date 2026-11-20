@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>BdagPool Template Reset Error Propagation</title>
+  <style>
+    :root {
+      color-scheme: dark light;
+      --bg: #101418;
+      --panel: #17212a;
+      --text: #eef5f7;
+      --muted: #a9b7bf;
+      --accent: #7dd3fc;
+      --warn: #fbbf24;
+      --ok: #34d399;
+      --line: #2b3b46;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+    h1, h2, h3 { line-height: 1.15; margin: 0 0 12px; }
+    h1 { font-size: clamp(28px, 4vw, 44px); }
+    h2 { margin-top: 28px; font-size: 22px; }
+    p { color: var(--muted); margin: 0 0 14px; }
+    code { color: #d8b4fe; }
+    .hero, .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .pill {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      margin: 4px 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .step {
+      border-left: 4px solid var(--accent);
+      padding: 12px;
+      background: #111b22;
+      border-radius: 6px;
+    }
+    .step strong { display: block; margin-bottom: 6px; }
+    ul { margin: 0; padding-left: 20px; color: var(--muted); }
+    li { margin: 7px 0; }
+    .warn { border-left-color: var(--warn); }
+    .ok { border-left-color: var(--ok); }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>BdagPool Template Reset Error Propagation</h1>
+    <p>
+      This plan targets a narrow source-level stability gap in the mining template path:
+      <code>BdagPool.updateTemplate</code> can currently hide failed rebuilds, while
+      <code>ResetTemplate()</code> reports success to the miner even when no healthy EVM
+      pending block was produced.
+    </p>
+    <span class="pill">Repo: blockdag-corechain</span>
+    <span class="pill">Branch: feature/corechain-bdagpool-reset-errors</span>
+    <span class="pill">Risk: node-only, source-only</span>
+    <span class="pill">Live action: none</span>
+  </section>
+
+  <h2>Why This Matters</h2>
+  <div class="grid">
+    <article class="card">
+      <h3>Current Failure Shape</h3>
+      <p>
+        The miner asks BdagPool to reset its EVM pending template before building a DAG
+        mining template. If BdagPool cannot prepare, fill, or commit that pending block,
+        the caller gets no reliable error.
+      </p>
+    </article>
+    <article class="card">
+      <h3>Mining Impact</h3>
+      <p>
+        Hidden failures make the pool and watchdog infer state from stale submissions,
+        expired templates, or missing work. That delays recovery and can waste ASIC hash
+        power on unusable templates.
+      </p>
+    </article>
+    <article class="card">
+      <h3>Safe Fix</h3>
+      <p>
+        Propagate rebuild errors, make explicit resets force a rebuild, keep the last
+        usable pending state when rebuild fails, and record the exact failure reason in
+        mining template health.
+      </p>
+    </article>
+  </div>
+
+  <h2>Implementation Shape</h2>
+  <div class="flow">
+    <div class="step"><strong>1. Return errors</strong><span><code>updateTemplate</code> returns an error instead of silently exiting.</span></div>
+    <div class="step"><strong>2. Reset reply carries error</strong><span><code>resetTemplateMsg</code> replies with <code>error</code>, not only an empty signal.</span></div>
+    <div class="step"><strong>3. Force explicit reset</strong><span><code>ResetTemplate()</code> bypasses the parent-match no-op path so reset means rebuild now.</span></div>
+    <div class="step"><strong>4. Preserve last good</strong><span>A failed rebuild discards the new environment and does not replace <code>current</code>.</span></div>
+    <div class="step"><strong>5. Miner records cause</strong><span><code>updateBlockTemplate</code> records BdagPool reset failures as template build errors.</span></div>
+  </div>
+
+  <h2>Acceptance Criteria</h2>
+  <ul>
+    <li><code>ResetTemplate()</code> returns a real error when BdagPool is stopped, syncing, interrupted, or rebuild fails.</li>
+    <li><code>ResetTemplate()</code> forces a template rebuild even when the previous pending block has the current parent.</li>
+    <li><code>updateTemplate</code> does not replace the current environment after commit failure.</li>
+    <li>Successful rebuild behavior remains unchanged.</li>
+    <li>Miner template health exposes reset failures as <code>evm_pending_template_unavailable</code>.</li>
+    <li>Nodeworker treats that reason as restart-eligible only when the health result marks the error blocking.</li>
+    <li>Focused offline tests pass; no live services or ASICs are touched.</li>
+  </ul>
+
+  <h2>Tests</h2>
+  <div class="grid">
+    <article class="card">
+      <h3>Unit Tests</h3>
+      <ul>
+        <li>stopped BdagPool reset returns an error instead of blocking</li>
+        <li>reset reply propagates handler error to caller</li>
+        <li>failed update keeps previous <code>current</code> environment</li>
+        <li>miner records reset error before calling <code>NewBlockTemplate</code></li>
+      </ul>
+    </article>
+    <article class="card">
+      <h3>Validation Commands</h3>
+      <ul>
+        <li><code>go test ./bevm/bdag -run 'Test.*Template|Test.*Reset' -count=1</code></li>
+        <li><code>go test ./services/miner -run 'Test.*Template|Test.*Build' -count=1</code></li>
+        <li><code>go test ./bevm/bdag ./services/miner ./services/mining -count=1</code></li>
+        <li><code>git diff --check HEAD</code></li>
+      </ul>
+    </article>
+  </div>
+
+  <h2>Rollback</h2>
+  <p>
+    This is a source-only branch stacked on the current template-health work. Rollback is
+    simply dropping this branch/PR before release. If later deployed and live metrics degrade,
+    revert the commit and return to the prior corechain image while preserving healthy chain data.
+  </p>
+</main>
+<script type="application/json" id="agent-metadata">
+{
+  "document_type": "sdlc_design",
+  "component": "corechain",
+  "branch": "feature/corechain-bdagpool-reset-errors",
+  "risk": "node-only",
+  "live_services_touched": false,
+  "backlog_item": "PVTI_lADODbdoIs4BXjCZzgsmiho",
+  "target_files": [
+    "bevm/bdag/bdagpool.go",
+    "services/miner/miner.go"
+  ],
+  "goal": "Propagate BdagPool template reset failures and preserve last-good pending state on rebuild failure."
+}
+</script>
+</body>
+</html>

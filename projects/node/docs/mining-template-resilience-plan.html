@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mining Template Resilience Plan</title>
+  <style>
+    :root {
+      color-scheme: dark light;
+      --bg: #0f1419;
+      --panel: #161d26;
+      --panel-2: #1f2935;
+      --text: #edf4f8;
+      --muted: #a9b7c5;
+      --line: #324050;
+      --accent: #63d7a2;
+      --warn: #f4c95d;
+      --bad: #ff7070;
+      --code: #d8f7ff;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 28px 20px 52px;
+    }
+    h1, h2, h3 { line-height: 1.18; }
+    h1 { margin: 0 0 8px; font-size: 2rem; }
+    h2 {
+      margin: 30px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--line);
+    }
+    h3 { margin: 0 0 8px; }
+    code {
+      color: var(--code);
+      background: #0a0d12;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 1px 5px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 12px 0;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 9px 10px;
+      vertical-align: top;
+    }
+    th { background: var(--panel-2); text-align: left; }
+    .lede { color: var(--muted); max-width: 920px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 12px;
+    }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .chip {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 3px 9px;
+      margin: 0 5px 5px 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .good { color: var(--accent); }
+    .warn { color: var(--warn); }
+    .bad { color: var(--bad); }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .step {
+      min-height: 92px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-top: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 10px;
+    }
+    .step.warn { border-top-color: var(--warn); }
+    .step.bad { border-top-color: var(--bad); }
+    @media (max-width: 850px) {
+      .flow { grid-template-columns: 1fr; }
+    }
+  </style>
+  <script id="agent-metadata" type="application/json">
+  {
+    "document_type": "source_design_plan",
+    "branch": "feature/corechain-last-good-template-queue",
+    "repo": "BlockdagEngineering/blockdag-corechain",
+    "base_branch": "feature/corechain-structured-submit-outcomes-complete",
+    "created_at_sast": "2026-05-13",
+    "goal": "Move mining-template freshness, last-good policy, and latest-only subscription semantics into corechain source so pool/watchdog logic no longer has to infer these states from logs or stale submit errors.",
+    "live_system_boundary": "No live mining services, Docker services, ASIC configuration, or chain data are changed by this source branch.",
+    "primary_files": [
+      "services/miner/miner.go",
+      "services/miner/api.go",
+      "services/miner/gbtworker.go",
+      "services/miner/health.go",
+      "core/json/blocktemplate.go",
+      "services/mining/newblocktemplate.go"
+    ],
+    "required_tests": [
+      "go test ./services/miner ./services/mining ./rpc/client/cmds",
+      "go test ./services/miner -run 'Test.*Template|Test.*Latest|Test.*Health'"
+    ]
+  }
+  </script>
+</head>
+<body>
+  <!-- AGENT: Design-first commit. Implement behavior in later commits on this branch. -->
+  <main>
+    <header>
+      <h1>Mining Template Resilience Plan</h1>
+      <p class="lede">This branch moves a watchdog workaround into source: the node should know when a template is usable, when the last build failed but the last-good template is still safe, and how to keep pool subscribers on the newest template without building an unbounded backlog.</p>
+      <span class="chip good">Source-level reliability</span>
+      <span class="chip">No live service changes</span>
+      <span class="chip warn">Mining hot path</span>
+      <span class="chip bad">Consensus-adjacent safety</span>
+    </header>
+
+    <section data-agent-section="problem">
+      <h2>Problem</h2>
+      <div class="grid">
+        <article class="card">
+          <h3>Template Build Failure Is Too Strong</h3>
+          <p><code>buildTemplateHealthResult</code> currently treats a recent build error as non-mineable even when a previously built template may still be fresh and safe. This makes routing and watchdog behavior overly reactive.</p>
+        </article>
+        <article class="card">
+          <h3>Template Work Is Not Latest-Only</h3>
+          <p>Mempool changes can request template rebuilds repeatedly. Parent/tip changes matter, but ordinary mempool churn should be coalesced so the node does not waste CPU building stale intermediate templates.</p>
+        </article>
+        <article class="card">
+          <h3>Slow Subscribers Can Back Up Delivery</h3>
+          <p>The subscription comment says slow subscribers are handled by buffering, but <code>event.Feed.Send</code> waits for subscriber channels. The WebSocket layer needs explicit latest-only delivery so a slow pool cannot hold up emission.</p>
+        </article>
+      </div>
+    </section>
+
+    <section data-agent-section="target-behavior">
+      <h2>Target Behavior</h2>
+      <div class="flow">
+        <div class="step"><h3>1. Trigger</h3><p>Classify template requests as parent/tip, forced, coinbase/pow change, mempool, TTL, or stall recovery.</p></div>
+        <div class="step warn"><h3>2. Coalesce</h3><p>Allow only one active build. Preserve the latest pending request and promote parent/tip changes above mempool churn.</p></div>
+        <div class="step"><h3>3. Build</h3><p>Build a new template once. Record duration, reason, and error code without destroying a still-valid last-good template.</p></div>
+        <div class="step"><h3>4. Validate</h3><p>Serve last-good only while parent set, coinbase/pow, sync state, timestamp, and TTL remain safe.</p></div>
+        <div class="step"><h3>5. Emit</h3><p>Emit latest template snapshots to subscribers with drop-oldest semantics for slow clients.</p></div>
+      </div>
+    </section>
+
+    <section data-agent-section="implementation-slices">
+      <h2>Implementation Slices</h2>
+      <table>
+        <thead>
+          <tr><th>Slice</th><th>Change</th><th>Safety Rule</th><th>Primary Tests</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>A. Health semantics</td>
+            <td>Add explicit fields for <code>last_good_template</code>, <code>last_good_age_ms</code>, and <code>last_build_error_is_blocking</code>.</td>
+            <td>Build errors do not imply non-mineable unless no valid last-good template exists.</td>
+            <td>Health result with prior template plus transient build failure remains mineable.</td>
+          </tr>
+          <tr>
+            <td>B. Template validity helper</td>
+            <td>Extract a pure helper that evaluates parent equality, template age, coinbase, pow type, and sync allowance.</td>
+            <td>Never serve last-good after parent/tip change or expiry.</td>
+            <td>Expired and parent-mismatch templates are rejected with clear reasons.</td>
+          </tr>
+          <tr>
+            <td>C. Latest-only queue</td>
+            <td>Introduce a small build scheduler that coalesces non-critical rebuild requests and records the latest pending reason.</td>
+            <td>Parent/tip changes outrank mempool churn and cannot be lost.</td>
+            <td>Burst mempool requests produce one pending build; parent change during burst wins.</td>
+          </tr>
+          <tr>
+            <td>D. Subscriber delivery</td>
+            <td>Use a latest-only subscription bridge for <code>BlockTemplate</code> WebSocket clients.</td>
+            <td>A slow subscriber must not block template emission for the miner.</td>
+            <td>Slow subscriber receives the newest sequence and old pending pushes are dropped.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section data-agent-section="risk-controls">
+      <h2>Risk Controls</h2>
+      <table>
+        <thead>
+          <tr><th>Risk</th><th>Control</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Higher stale-parent submits</td><td>Last-good is invalid if parent set differs from current mining tips.</td></tr>
+          <tr><td>Template expiry under fast DAG timing</td><td>TTL must be derived from <code>TargetTimePerBlock</code> and exposed in health.</td></tr>
+          <tr><td>Restart churn from nodeworker</td><td>Nodeworker mining-readiness gate waits for this health contract before acting.</td></tr>
+          <tr><td>Regression in external pool behavior</td><td>Keep RPC field additions backward-compatible and avoid removing existing fields.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section data-agent-section="definition-of-done">
+      <h2>Definition Of Done</h2>
+      <ul>
+        <li>Template health distinguishes last build error from current template mineability.</li>
+        <li>Slow WebSocket subscribers cannot block template emission.</li>
+        <li>Mempool-triggered rebuild bursts are latest-only and bounded.</li>
+        <li>Parent/tip changes are never coalesced away behind mempool churn.</li>
+        <li>Tests pass for miner, mining, and RPC command packages.</li>
+        <li>PR body documents that live deployment and A/B testing are separate approval steps.</li>
+      </ul>
+    </section>
+  </main>
+</body>
+</html>

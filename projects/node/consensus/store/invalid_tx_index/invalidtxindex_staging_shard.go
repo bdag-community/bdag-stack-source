@@ -1,0 +1,258 @@
+package invalid_tx_index
+
+import (
+	"encoding/binary"
+	"fmt"
+
+	blockdag "github.com/BlockdagNetworkLabs/bdag/blockdag"
+	"github.com/BlockdagNetworkLabs/bdag/consensus/model"
+	"github.com/BlockdagNetworkLabs/bdag/core/serialization"
+	"github.com/BlockdagNetworkLabs/bdag/core/types"
+	"github.com/BlockdagNetworkLabs/bdag/database"
+	"github.com/BlockdagNetworkLabs/bdag/log"
+	"github.com/ethereum/go-ethereum/common"
+	ethtypes "github.com/ethereum/go-ethereum/core/types"
+)
+
+const (
+	// Size of a transaction entry.  It consists of 4 bytes block id + 4
+	// bytes offset + 4 bytes length.
+	txEntrySize = 4 + 4 + 4
+)
+
+var (
+	// byteOrder is the preferred byte order used for serializing numeric
+	// fields for storage in the database.
+	byteOrder = binary.LittleEndian
+)
+
+type invalidtxindexStagingShard struct {
+	store    *invalidtxindexStore
+	toAdd    map[uint64]*types.SerializedBlock
+	toDelete map[uint64]*types.SerializedBlock
+	tipOrder uint64
+	tipHash  *common.Hash
+}
+
+func (biss *invalidtxindexStagingShard) Commit(dbTx database.Tx) error {
+	if !biss.isStaged() {
+		return nil
+	}
+	var bucket database.Bucket
+	var itxidByTxhashBucket database.Bucket
+	bucket = dbTx.Metadata().Bucket(bucketName)
+	if bucket == nil {
+		var err error
+		bucket, err = dbTx.Metadata().CreateBucketIfNotExists(bucketName)
+		if err != nil {
+			return err
+		}
+		log.Info(fmt.Sprintf("Create bucket:%s", bucketName))
+
+		itxidByTxhashBucket, err = bucket.CreateBucketIfNotExists(itxidByTxhashBucketName)
+		if err != nil {
+			return err
+		}
+	}
+	for blockid, block := range biss.toAdd {
+		err := dbAddTxIndexEntries(bucket, itxidByTxhashBucket, block, blockid)
+		if err != nil {
+			return err
+		}
+	}
+	for blockid, block := range biss.toDelete {
+		err := dbRemoveTxIndexEntries(bucket, itxidByTxhashBucket, blockid, block)
+		if err != nil {
+			return err
+		}
+	}
+	if biss.tipHash != nil {
+		err := bucket.Put(tipOrderKeyName, serialization.SerializeUint64(biss.tipOrder))
+		if err != nil {
+			return err
+		}
+		err = bucket.Put(tipHashKeyName, biss.tipHash.Bytes())
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (biss *invalidtxindexStagingShard) isStaged() bool {
+	return len(biss.toAdd) != 0 || len(biss.toDelete) != 0 || biss.tipHash != nil
+}
+
+func dbAddTxIndexEntries(itxIndex database.Bucket, itxidByTxhash database.Bucket, block *types.SerializedBlock, blockID uint64) error {
+	addEntries := func(txns []*ethtypes.Transaction, txLocs []types.TxLoc, blockID uint64) error {
+		offset := 0
+		serializedValues := make([]byte, len(txns)*txEntrySize)
+		for i, _ := range txns {
+			putTxIndexEntry(serializedValues[offset:], blockID, txLocs[i])
+			// endOffset := offset + txEntrySize
+
+			// if !tx.IsDuplicate {
+			// 	if err := dbPutTxIndexEntry(itxIndex, tx.Hash(),
+			// 		serializedValues[offset:endOffset:endOffset]); err != nil {
+			// 		return err
+			// 	}
+			// 	if err := dbPutTxIdByHash(itxidByTxhash, tx.Object.(*ethtypes.Transaction).Hash(), tx.Hash()); err != nil {
+			// 		return err
+			// 	}
+			// }
+			offset += txEntrySize
+		}
+		return nil
+	}
+	txLocs, err := block.TxLoc()
+	if err != nil {
+		return err
+	}
+
+	err = addEntries(block.Transactions(), txLocs, blockID)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func dbPutTxIndexEntry(itxIndex database.Bucket, txHash *common.Hash, serializedData []byte) error {
+	return itxIndex.Put(txHash[:], serializedData)
+}
+
+func dbPutTxIdByHash(itxidByTxhash database.Bucket, txHash common.Hash, txId *common.Hash) error {
+	return itxidByTxhash.Put(txHash[:], txId[:])
+}
+
+// putTxIndexEntry serializes the provided values according to the format
+// described about for a transaction index entry.  The target byte slice must
+// be at least large enough to handle the number of bytes defined by the
+// txEntrySize constant or it will panic.
+func putTxIndexEntry(target []byte, blockID uint64, txLoc types.TxLoc) {
+	byteOrder.PutUint64(target, blockID)
+	byteOrder.PutUint32(target[8:], uint32(txLoc.TxStart))
+	byteOrder.PutUint32(target[12:], uint32(txLoc.TxLen))
+}
+
+func dbFetchTxIndexEntry(ldb database.DB, db model.DataBase, txid *common.Hash) (*database.BlockRegion, error) {
+	var serializedData []byte
+	ldb.View(func(dbTx database.Tx) error {
+		itxIndex := dbTx.Metadata().Bucket(bucketName)
+		if itxIndex == nil {
+			return nil
+		}
+		serializedData = itxIndex.Get(txid[:])
+		return nil
+	})
+	if len(serializedData) <= 0 {
+		return nil, nil
+	}
+
+	// Ensure the serialized data has enough bytes to properly deserialize.
+	if len(serializedData) < 16 {
+		return nil, database.Error{
+			ErrorCode: database.ErrCorruption,
+			Description: fmt.Sprintf("corrupt transaction index "+
+				"entry for %s", txid),
+		}
+	}
+
+	// Load the block hash associated with the block ID.
+	blockID, err := serialization.DeserializeUint64(serializedData[0:4])
+	if err != nil {
+		return nil, err
+	}
+
+	h, err := blockdag.DBGetDAGBlockHashByID(db, blockID)
+	if err != nil {
+		return nil, database.Error{
+			ErrorCode: database.ErrCorruption,
+			Description: fmt.Sprintf("corrupt transaction index "+
+				"entry for %s: %v", txid, err),
+		}
+	}
+
+	// Deserialize the final entry.
+	region := database.BlockRegion{Hash: &common.Hash{}}
+	copy(region.Hash[:], h[:])
+	region.Offset = byteOrder.Uint32(serializedData[4:8])
+	region.Len = byteOrder.Uint32(serializedData[8:12])
+	return &region, nil
+}
+
+func dbFetchBlockIDByTxID(itxIndex database.Bucket, txid common.Hash) (uint64, error) {
+	serializedData := itxIndex.Get(txid[:])
+	if len(serializedData) == 0 {
+		return 0, nil
+	}
+
+	// Ensure the serialized data has enough bytes to properly deserialize.
+	if len(serializedData) < 16 {
+		return 0, database.Error{
+			ErrorCode: database.ErrCorruption,
+			Description: fmt.Sprintf("corrupt transaction index "+
+				"entry for %s", txid),
+		}
+	}
+	return serialization.DeserializeUint64(serializedData[0:4])
+}
+
+func dbRemoveTxIndexEntries(itxIndex database.Bucket, itxidByTxhash database.Bucket, blockID uint64, block *types.SerializedBlock) error {
+	removeEntries := func(txns []*ethtypes.Transaction) error {
+		for _, tx := range txns {
+			bid, err := dbFetchBlockIDByTxID(itxIndex, tx.Hash())
+			if err != nil {
+				return err
+			}
+			if bid != blockID {
+				continue
+			}
+			if err := dbRemoveTxIndexEntry(itxIndex, tx.Hash()); err != nil {
+				return err
+			}
+			if err := dbRemoveTxIdByHash(itxidByTxhash, tx.Hash()); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+	if err := removeEntries(block.Transactions()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func dbRemoveTxIndexEntry(itxIndex database.Bucket, txHash common.Hash) error {
+	serializedData := itxIndex.Get(txHash[:])
+	if len(serializedData) == 0 {
+		return nil
+	}
+	return itxIndex.Delete(txHash[:])
+}
+
+func dbRemoveTxIdByHash(itxidByTxhash database.Bucket, txhash common.Hash) error {
+	serializedData := itxidByTxhash.Get(txhash[:])
+	if len(serializedData) == 0 {
+		return nil
+	}
+	return itxidByTxhash.Delete(txhash[:])
+}
+
+func dbFetchTxIdByHash(dbTx database.Tx, h *common.Hash) (*common.Hash, error) {
+	bucket := dbTx.Metadata().Bucket(bucketName)
+	if bucket == nil {
+		return nil, nil
+	}
+	itxidByTxhashBucket := bucket.Bucket(itxidByTxhashBucketName)
+	if itxidByTxhashBucket == nil {
+		return nil, nil
+	}
+	serializedData := itxidByTxhashBucket.Get(h[:])
+	if serializedData == nil {
+		return nil, nil
+	}
+	txId := common.Hash{}
+	txId.SetBytes(serializedData[:])
+	return &txId, nil
+}

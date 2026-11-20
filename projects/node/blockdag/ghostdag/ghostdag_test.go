@@ -1,0 +1,281 @@
+package ghostdag
+
+import (
+	"github.com/BlockdagNetworkLabs/bdag/blockdag/ghostdag/model"
+	cmodel "github.com/BlockdagNetworkLabs/bdag/consensus/model"
+	"github.com/ethereum/go-ethereum/common"
+)
+
+type block struct {
+	ID             string   `json:"ID"`
+	Score          uint64   `json:"ExpectedScore"`
+	SelectedParent string   `json:"ExpectedSelectedParent"`
+	MergeSetReds   []string `json:"ExpectedReds"`
+	MergeSetBlues  []string `json:"ExpectedBlues"`
+	Parents        []string `json:"Parents"`
+}
+
+type testDag struct {
+	K                    model.KType `json:"K"`
+	GenesisID            string      `json:"GenesisID"`
+	ExpectedMergeSetReds []string    `json:"ExpectedReds"`
+	Blocks               []block     `json:"Blocks"`
+}
+
+// func TestGHOSTDAG(t *testing.T) {
+// 	dagTopology := &TestDAGTopologyManage{
+// 		parentsMap: make(map[common.Hash][]*common.Hash),
+// 	}
+
+// 	ghostdagDataStore := &TestGHOSTDAGDataStore{
+// 		dagMap: make(map[common.Hash]*model.BlockGHOSTDAGData),
+// 	}
+
+// 	blockHeadersStore := &TestBlockHeadersStore{
+// 		dagMap: make(map[common.Hash]model.BlockHeader),
+// 	}
+
+// 	blockGHOSTDAGDataGenesis := model.NewBlockGHOSTDAGData(0, new(big.Int), nil, nil, nil, nil)
+// 	genesisHeader := params.PrivNetParam.GenesisBlock.Block().Header
+// 	genesisWork := pow.CalcWork(genesisHeader.Difficulty, genesisHeader.Pow.GetPowType())
+
+// 	path := "./test_data.json"
+// 	jsonFile, err := os.Open(path)
+// 	if err != nil {
+// 		t.Fatalf("TestGHOSTDAG : failed opening the json file: %v", err)
+// 	}
+// 	defer jsonFile.Close()
+// 	var test testDag
+// 	decoder := json.NewDecoder(jsonFile)
+// 	decoder.DisallowUnknownFields()
+// 	err = decoder.Decode(&test)
+// 	if err != nil {
+// 		t.Fatalf("TestGHOSTDAG:failed decoding json: %v", err)
+// 	}
+
+// 	genesisHash := *StringToHash(test.GenesisID)
+
+// 	dagTopology.parentsMap[genesisHash] = nil
+
+// 	ghostdagDataStore.dagMap[genesisHash] = blockGHOSTDAGDataGenesis
+// 	blockHeadersStore.dagMap[genesisHash] = NewBlockHeader(genesisHeader.Difficulty, genesisHeader.Pow)
+
+// 	g := New(nil, dagTopology, ghostdagDataStore, blockHeadersStore, test.K, genesisHash)
+
+// 	for _, testBlockData := range test.Blocks {
+// 		blockID := StringToHash(testBlockData.ID)
+// 		dagTopology.parentsMap[*blockID] = StringToHashSlice(testBlockData.Parents)
+// 		blockHeadersStore.dagMap[*blockID] = NewBlockHeader(genesisHeader.Difficulty, genesisHeader.Pow)
+
+// 		err = g.GHOSTDAG(nil, blockID)
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+// 		ghostdagData, err := ghostdagDataStore.Get(nil, nil, blockID, false)
+// 		if err != nil {
+// 			t.Fatal(err)
+// 		}
+
+// 		// because the difficulty is constant and equal to genesis the work should be blueScore*genesisWork.
+// 		expectedWork := new(big.Int).Mul(genesisWork, new(big.Int).SetUint64(testBlockData.Score))
+// 		if expectedWork.Cmp(ghostdagData.BlueWork()) != 0 {
+// 			t.Fatalf("\nTEST FAILED:\nBlock: %s, \nError: expected blue work %d but got %d.", testBlockData.ID, expectedWork, ghostdagData.BlueWork())
+// 		}
+// 		if testBlockData.Score != (ghostdagData.BlueScore()) {
+// 			t.Fatalf("\nTEST FAILED:\nBlock: %s, \nError: expected blue score %d but got %d.",
+// 				testBlockData.ID, testBlockData.Score, ghostdagData.BlueScore())
+// 		}
+
+// 		if !StringToHash(testBlockData.SelectedParent).IsEqual(ghostdagData.SelectedParent()) {
+// 			t.Fatalf("\nTEST FAILED:\nBlock: %s, \nError: expected selected parent %v but got %s.",
+// 				testBlockData.ID, testBlockData.SelectedParent, ghostdagData.SelectedParent())
+// 		}
+
+// 		if !reflect.DeepEqual(StringToHashSlice(testBlockData.MergeSetBlues), ghostdagData.MergeSetBlues()) {
+// 			t.Fatalf("\nTEST FAILED:\nBlock: %s, \nError: expected merge set blues %v but got %v.",
+// 				testBlockData.ID, testBlockData.MergeSetBlues, hashesToStrings(ghostdagData.MergeSetBlues()))
+// 		}
+
+// 		if !reflect.DeepEqual(StringToHashSlice(testBlockData.MergeSetReds), ghostdagData.MergeSetReds()) {
+// 			t.Fatalf("\nTEST FAILED:\nBlock: %s, \nError: expected merge set reds %v but got %v.",
+// 				testBlockData.ID, testBlockData.MergeSetReds, hashesToStrings(ghostdagData.MergeSetReds()))
+// 		}
+// 	}
+// }
+
+func hashesToStrings(arr []*common.Hash) []string {
+	var strArr = make([]string, len(arr))
+	for i, h := range arr {
+		strArr[i] = string(h.Bytes())
+	}
+	return strArr
+}
+
+// func StringToHash(strID string) *common.Hash {
+// 	var genesisHashArray [common.HashLength]byte
+// 	copy(genesisHashArray[:], strID)
+// 	h := hash.MustBytesToHash(genesisHashArray[:])
+// 	return &h
+// }
+
+// func StringToHashSlice(stringIDArr []string) []*common.Hash {
+// 	domainHashArr := make([]*common.Hash, len(stringIDArr))
+// 	for i, strID := range stringIDArr {
+// 		domainHashArr[i] = StringToHash(strID)
+// 	}
+// 	return domainHashArr
+// }
+
+// blockHeadersStore
+type TestBlockHeadersStore struct {
+	dagMap map[common.Hash]model.BlockHeader
+}
+
+func (b *TestBlockHeadersStore) Discard() { panic("unimplemented") }
+
+func (b *TestBlockHeadersStore) Commit(_ model.DBTransaction) error { panic("unimplemented") }
+
+// func (b *TestBlockHeadersStore) Stage(stagingArea *cmodel.StagingArea, blockHash *common.Hash, blockHeader model.BlockHeader) {
+// 	b.dagMap[*blockHash] = blockHeader
+// }
+
+// func (b *TestBlockHeadersStore) IsStaged(*cmodel.StagingArea) bool { panic("unimplemented") }
+
+// func (b *TestBlockHeadersStore) BlockHeader(dbContext model.DBReader, stagingArea *cmodel.StagingArea, blockHash *common.Hash) (model.BlockHeader, error) {
+// 	header, ok := b.dagMap[*blockHash]
+// 	if ok {
+// 		return header, nil
+// 	}
+// 	return nil, errors.New("Header isn't in the store")
+// }
+
+// func (b *TestBlockHeadersStore) HasBlockHeader(dbContext model.DBReader, stagingArea *cmodel.StagingArea, blockHash *common.Hash) (bool, error) {
+// 	_, ok := b.dagMap[*blockHash]
+// 	return ok, nil
+// }
+
+// func (b *TestBlockHeadersStore) BlockHeaders(dbContext model.DBReader, stagingArea *cmodel.StagingArea, blockHashes []*common.Hash) ([]model.BlockHeader, error) {
+// 	res := make([]model.BlockHeader, 0, len(blockHashes))
+// 	for _, hash := range blockHashes {
+// 		header, err := b.BlockHeader(nil, nil, hash)
+// 		if err != nil {
+// 			return nil, err
+// 		}
+// 		res = append(res, header)
+// 	}
+// 	return res, nil
+// }
+
+// func (b *TestBlockHeadersStore) Delete(stagingArea *cmodel.StagingArea, blockHash *common.Hash) {
+// 	delete(b.dagMap, *blockHash)
+// }
+
+func (b *TestBlockHeadersStore) Count(*cmodel.StagingArea) uint64 {
+	return uint64(len(b.dagMap))
+}
+
+// TestGHOSTDAGDataStore
+type TestGHOSTDAGDataStore struct {
+	dagMap map[common.Hash]*model.BlockGHOSTDAGData
+}
+
+// func (ds *TestGHOSTDAGDataStore) Stage(stagingArea *cmodel.StagingArea, blockHash *common.Hash, blockGHOSTDAGData *model.BlockGHOSTDAGData, isTrustedData bool) {
+// 	ds.dagMap[*blockHash] = blockGHOSTDAGData
+// }
+
+func (ds *TestGHOSTDAGDataStore) IsStaged(*cmodel.StagingArea) bool {
+	panic("implement me")
+}
+
+func (ds *TestGHOSTDAGDataStore) Commit() error {
+	panic("implement me")
+}
+
+// func (ds *TestGHOSTDAGDataStore) Get(dbContext model.DBReader, stagingArea *cmodel.StagingArea, blockHash *common.Hash, isTrustedData bool) (*model.BlockGHOSTDAGData, error) {
+// 	v, ok := ds.dagMap[*blockHash]
+// 	if ok {
+// 		return v, nil
+// 	}
+// 	return nil, nil
+// }
+
+func (ds *TestGHOSTDAGDataStore) UnstageAll(stagingArea *cmodel.StagingArea) {
+	panic("implement me")
+}
+
+// TestDAGTopologyManage
+type TestDAGTopologyManage struct {
+	parentsMap map[common.Hash][]*common.Hash
+}
+
+func (dt *TestDAGTopologyManage) ChildInSelectedParentChainOf(stagingArea *cmodel.StagingArea, lowHash, highHash *common.Hash) (*common.Hash, error) {
+	panic("implement me")
+}
+
+func (dt *TestDAGTopologyManage) Tips() ([]*common.Hash, error) {
+	panic("implement me")
+}
+
+func (dt *TestDAGTopologyManage) AddTip(tipHash *common.Hash) error {
+	panic("implement me")
+}
+
+// func (dt *TestDAGTopologyManage) Parents(stagingArea *cmodel.StagingArea, blockHash *common.Hash) ([]*common.Hash, error) {
+// 	v, ok := dt.parentsMap[*blockHash]
+// 	if !ok {
+// 		return []*common.Hash{}, nil
+// 	}
+
+// 	return v, nil
+// }
+
+func (dt *TestDAGTopologyManage) Children(stagingArea *cmodel.StagingArea, blockHash *common.Hash) ([]*common.Hash, error) {
+	panic("unimplemented")
+}
+
+func (dt *TestDAGTopologyManage) IsParentOf(stagingArea *cmodel.StagingArea, blockHashA *common.Hash, blockHashB *common.Hash) (bool, error) {
+	panic("unimplemented")
+}
+
+func (dt *TestDAGTopologyManage) IsChildOf(stagingArea *cmodel.StagingArea, blockHashA *common.Hash, blockHashB *common.Hash) (bool, error) {
+	panic("unimplemented")
+}
+
+// func (dt *TestDAGTopologyManage) IsAncestorOf(stagingArea *cmodel.StagingArea, blockHashA *common.Hash, blockHashB *common.Hash) (bool, error) {
+// 	blockBParents, isOk := dt.parentsMap[*blockHashB]
+// 	if !isOk {
+// 		return false, nil
+// 	}
+
+// 	for _, parentOfB := range blockBParents {
+// 		if parentOfB.IsEqual(blockHashA) {
+// 			return true, nil
+// 		}
+// 	}
+
+// 	for _, parentOfB := range blockBParents {
+// 		isAncestorOf, err := dt.IsAncestorOf(stagingArea, blockHashA, parentOfB)
+// 		if err != nil {
+// 			return false, err
+// 		}
+// 		if isAncestorOf {
+// 			return true, nil
+// 		}
+// 	}
+// 	return false, nil
+
+// }
+
+func (dt *TestDAGTopologyManage) IsAncestorOfAny(stagingArea *cmodel.StagingArea, blockHash *common.Hash, potentialDescendants []*common.Hash) (bool, error) {
+	panic("unimplemented")
+}
+func (dt *TestDAGTopologyManage) IsAnyAncestorOf(*cmodel.StagingArea, []*common.Hash, *common.Hash) (bool, error) {
+	panic("unimplemented")
+}
+func (dt *TestDAGTopologyManage) IsInSelectedParentChainOf(stagingArea *cmodel.StagingArea, blockHashA *common.Hash, blockHashB *common.Hash) (bool, error) {
+	panic("unimplemented")
+}
+
+func (dt *TestDAGTopologyManage) SetParents(stagingArea *cmodel.StagingArea, blockHash *common.Hash, parentHashes []*common.Hash) error {
+	panic("unimplemented")
+}

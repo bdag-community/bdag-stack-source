@@ -1,0 +1,14 @@
+{
+  "accepted": false,
+  "final": false,
+  "retryable": true,
+  "code": "queued",
+  "message": "exact block is queued for local processing",
+  "block_hash": "0x0000000000000000000000000000000000000000000000000000000000000103",
+  "coinbase_txid": "",
+  "order": "",
+  "height": 0,
+  "coinbase_amount": 0,
+  "miner_type": "GBT",
+  "template_seq": 42
+}

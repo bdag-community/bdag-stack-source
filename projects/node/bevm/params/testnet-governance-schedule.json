@@ -1,0 +1,8 @@
+{
+  "earliestEvmBlock": 52000,
+  "signalStartLayer": 52000,
+  "activationLayer": 55999,
+  "releaseDistributedAt": 1790704800,
+  "noticePublishedAt": 1790704800,
+  "notBeforeTimestamp": 1790791200
+}

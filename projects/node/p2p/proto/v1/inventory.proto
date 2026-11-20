@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package network.p2p.v1;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "message.proto";
+
+message Inventory {
+  repeated InvVect invs =1 [(gogoproto.moretags) = "ssz-max:\"20000\""];
+}
+
+message InvVect {
+  uint32 type = 100;
+  Hash hash = 101;
+}

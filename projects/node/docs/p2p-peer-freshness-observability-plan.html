@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>P2P Peer Freshness Observability Plan</title>
+  <style>
+    :root {
+      color-scheme: dark light;
+      --bg: #10151b;
+      --panel: #182331;
+      --text: #eef6fb;
+      --muted: #a8b6c3;
+      --line: #314253;
+      --accent: #93c5fd;
+      --ok: #86efac;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { max-width: 1080px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.15; }
+    h1 { font-size: clamp(28px, 4vw, 42px); }
+    h2 { margin-top: 28px; font-size: 22px; }
+    p, li { color: var(--muted); }
+    code { color: #ddd6fe; }
+    .hero, .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 14px;
+    }
+    .pill {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      margin: 5px 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .metric { border-left: 4px solid var(--accent); padding-left: 12px; }
+    .metric strong { color: var(--text); display: block; }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>P2P Peer Freshness Observability</h1>
+    <p>
+      This branch exposes how fresh the node’s connected consensus peers are without
+      changing sync peer selection, routing, disconnect behavior, or mining policy.
+      The goal is to replace watchdog guesswork with source-level freshness signals.
+    </p>
+    <span class="pill">Repo: blockdag-corechain</span>
+    <span class="pill">Branch: feature/corechain-p2p-freshness-metrics</span>
+    <span class="pill">Risk: observe-only</span>
+    <span class="pill">Live action: none</span>
+  </section>
+
+  <h2>Signals</h2>
+  <div class="grid">
+    <div class="card metric"><strong>Consensus peers</strong><code>p2p/miningFreshness/consensusPeers</code></div>
+    <div class="card metric"><strong>Fresh consensus peers</strong><code>p2p/miningFreshness/freshConsensusPeers</code></div>
+    <div class="card metric"><strong>Stale consensus peers</strong><code>p2p/miningFreshness/staleConsensusPeers</code></div>
+    <div class="card metric"><strong>Best peer lead</strong><code>p2p/miningFreshness/bestPeerLeadBlocks</code></div>
+    <div class="card metric"><strong>Best peer graph-state age</strong><code>p2p/miningFreshness/bestGraphStateAgeMs</code></div>
+    <div class="card metric"><strong>Mining freshness verdict</strong><code>p2p/miningFreshness/miningFresh</code></div>
+    <div class="card metric"><strong>Sync peer present</strong><code>p2p/miningFreshness/syncPeerPresent</code></div>
+    <div class="card metric"><strong>Sync peer freshness</strong><code>p2p/miningFreshness/syncPeerFresh</code></div>
+  </div>
+
+  <p class="note">The legacy <code>p2p/freshness/*</code> gauges remain populated as aliases during rollout so existing dashboards do not lose telemetry while consumers move to the mining-specific names.</p>
+
+  <h2>Why</h2>
+  <p>
+    Template freshness depends on a node seeing chain tips quickly. A node can look
+    generally healthy while its connected peers have stale graph-state updates. These
+    metrics make that condition visible to Grafana and watchdog logic before it turns
+    into expired or late mining submissions.
+  </p>
+
+  <h2>Acceptance Criteria</h2>
+  <ul>
+    <li>Metrics are aggregate gauges with fixed names and no peer IDs, IPs, wallets, or high-cardinality labels.</li>
+    <li><code>getTemplateHealth</code> includes the same peer-freshness snapshot, plus explicit <code>p2p_mining_fresh</code>, <code>p2p_mining_fresh_reason_code</code>, and <code>p2p_sync_peer_present</code> fields for dashboard/watchdog consumers.</li>
+    <li>Peer selection and sync behavior are unchanged.</li>
+    <li>Unit tests cover freshness snapshot counts and stale-age calculation.</li>
+    <li>Package tests pass for <code>p2p/peers</code>, <code>p2p/synch</code>, and related P2P packages.</li>
+  </ul>
+
+  <h2>Validation</h2>
+  <ul>
+    <li><code>go test ./p2p/peers ./p2p/synch -run 'Test.*Freshness|Test.*Peer' -count=1</code></li>
+    <li><code>go test ./p2p/... -count=1</code></li>
+    <li><code>git diff --check HEAD</code></li>
+  </ul>
+</main>
+<script type="application/json" id="agent-metadata">
+{
+  "document_type": "sdlc_design",
+  "component": "corechain-p2p",
+  "branch": "feature/corechain-p2p-freshness-metrics",
+  "risk": "observe-only",
+  "live_services_touched": false,
+  "target_files": [
+    "consensus/model/p2p.go",
+    "core/json/blocktemplate.go",
+    "p2p/peers/status.go",
+    "p2p/peers/peer_test.go",
+    "p2p/common/metrics.go",
+    "p2p/synch/status.go",
+    "p2p/synch/peersync.go",
+    "p2p/service.go",
+    "services/miner/health.go"
+  ],
+  "goal": "Expose aggregate peer graph-state freshness metrics without changing peer selection."
+}
+</script>
+</body>
+</html>

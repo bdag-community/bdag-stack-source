@@ -1,0 +1,63 @@
+package hash
+
+import (
+	"github.com/BlockdagNetworkLabs/bdag/crypto/x16rv3"
+	"github.com/BlockdagNetworkLabs/bdag/crypto/x8r16"
+	"github.com/ethereum/go-ethereum/common"
+	"golang.org/x/crypto/blake2b"
+)
+
+// HashB using blake2b calculates 256 bits hash and returns the resulting bytes.
+func HashB(b []byte) []byte {
+	hash := blake2b.Sum256(b)
+	return hash[:]
+}
+
+// Hash512B using blake2b calculates 512 bits hash and returns the resulting bytes.
+func Hash512B(b []byte) []byte {
+	hash := blake2b.Sum512(b)
+	return hash[:]
+}
+
+// HashH calculates hash(b) and returns the resulting bytes as a Hash.
+func HashH(b []byte) common.Hash {
+	return common.Hash(blake2b.Sum256(b))
+}
+
+func HashHEVM(b []byte) common.Hash {
+	return common.Hash(blake2b.Sum256(b))
+}
+
+// HashX16rv3 calculates hash(b) and returns the resulting bytes as a Hash.
+func HashX16rv3(b []byte) common.Hash {
+	return common.Hash(x16rv3.Sum256(b))
+}
+
+// HashX8r16 calculates hash(b) and returns the resulting bytes as a Hash.
+func HashX8r16(b []byte) common.Hash {
+	return common.Hash(x8r16.Sum256(b))
+}
+
+// HashX8r16 calculates hash(b) and returns the resulting bytes as a Hash.
+func HashX8r16EVM(b []byte) common.Hash {
+	return common.Hash(x8r16.Sum256(b))
+}
+
+// DoubleHashB calculates hash(hash(b)) and returns the resulting bytes.
+func DoubleHashB(b []byte) []byte {
+	first := blake2b.Sum256(b)
+	second := blake2b.Sum256(first[:])
+	return second[:]
+}
+
+// DoubleHashH calculates hash(hash(b)) and returns the resulting bytes as a
+// Hash.
+func DoubleHashH(b []byte) Hash {
+	first := blake2b.Sum256(b)
+	return Hash(blake2b.Sum256(first[:]))
+}
+
+func DoubleHashHEVM(b []byte) common.Hash {
+	first := blake2b.Sum256(b)
+	return common.Hash(blake2b.Sum256(first[:]))
+}

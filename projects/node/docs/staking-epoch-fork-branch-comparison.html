@@ -1,0 +1,616 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Staking Epoch Fork Mitigation Branch Comparison</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --ink: #17202a;
+      --muted: #5d6b7c;
+      --panel: #ffffff;
+      --panel-2: #eef3f8;
+      --line: #d7e0ea;
+      --accent: #126a72;
+      --accent-2: #8a4a09;
+      --bad: #9b1c31;
+      --good: #17633b;
+      --warn: #8a4a09;
+      --code-bg: #101820;
+      --code-fg: #d8eef1;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    main {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 36px 22px 56px;
+    }
+    header {
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 22px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      margin: 0 0 10px;
+      font-size: clamp(2rem, 4vw, 3.35rem);
+      line-height: 1.05;
+      letter-spacing: 0;
+    }
+    h2 {
+      margin: 34px 0 12px;
+      font-size: 1.35rem;
+      letter-spacing: 0;
+    }
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 1.05rem;
+      letter-spacing: 0;
+    }
+    p { margin: 0 0 12px; color: var(--muted); }
+    ul { margin: 0 0 14px 20px; padding: 0; color: var(--muted); }
+    li { margin: 6px 0; }
+    code {
+      color: var(--accent);
+      background: #e8f2f3;
+      border: 1px solid #cae1e4;
+      border-radius: 5px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+    .lede {
+      font-size: 1.08rem;
+      max-width: 980px;
+      color: #3e4b59;
+    }
+    .meta {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-top: 18px;
+    }
+    .meta div,
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 14px 16px;
+    }
+    .meta span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.82rem;
+      margin-bottom: 3px;
+    }
+    .meta strong {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.92rem;
+      overflow-wrap: anywhere;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: 16px;
+      margin: 20px 0 8px;
+    }
+    .callout {
+      border-left: 5px solid var(--accent);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 16px 18px;
+      box-shadow: 0 1px 0 rgba(17, 24, 39, 0.04);
+    }
+    .callout.warning { border-left-color: var(--warn); }
+    .callout.bad { border-left-color: var(--bad); }
+    .callout.good { border-left-color: var(--good); }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      border-radius: 999px;
+      padding: 2px 10px;
+      border: 1px solid var(--line);
+      background: #f9fbfd;
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 650;
+      white-space: nowrap;
+    }
+    .status.good { color: var(--good); border-color: #a8d5bd; background: #edf8f2; }
+    .status.warn { color: var(--warn); border-color: #e4c89f; background: #fff6e8; }
+    .status.bad { color: var(--bad); border-color: #e1aeb8; background: #fff0f2; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    th, td {
+      vertical-align: top;
+      text-align: left;
+      padding: 12px 13px;
+      border-bottom: 1px solid var(--line);
+    }
+    th {
+      color: #2e3a47;
+      background: var(--panel-2);
+      font-size: 0.9rem;
+    }
+    td { color: var(--muted); }
+    tr:last-child td { border-bottom: 0; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 8px;
+      align-items: stretch;
+      margin-top: 10px;
+    }
+    .step {
+      min-height: 92px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: 8px;
+      padding: 10px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    .step strong {
+      display: block;
+      color: var(--ink);
+      margin-bottom: 5px;
+    }
+    .evidence {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+    .evidence .card { padding: 14px; }
+    .evidence h3 { margin-top: 0; }
+    pre {
+      margin: 10px 0 0;
+      background: var(--code-bg);
+      color: var(--code-fg);
+      border-radius: 8px;
+      padding: 12px;
+      overflow-x: auto;
+      font-size: 0.86rem;
+      line-height: 1.45;
+    }
+    .refs {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.86rem;
+      color: #445466;
+    }
+    .refs li { overflow-wrap: anywhere; }
+    .verdict {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    .small { font-size: 0.9rem; }
+    @media (max-width: 900px) {
+      .meta,
+      .summary,
+      .grid,
+      .evidence,
+      .verdict {
+        grid-template-columns: 1fr;
+      }
+      .flow {
+        grid-template-columns: 1fr;
+      }
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+    }
+  </style>
+  <script type="application/json" id="report-metadata">
+    {
+      "generated_on": "2026-07-02",
+      "base_branch": "main",
+      "base_commit": "1e57765059821a3edd1c18fd0785e5491a705062",
+      "comparison_branch": "fix/consensus-evm-state-guard",
+      "comparison_commit": "60828492b11df6894ef1390bed1799fb6ccdee11",
+      "merge_base": "4092a4de60ffb26c23d3a7ff9a012e8818d7aa85",
+      "worktree_branch_during_report": "bugfix/sync",
+      "problem": "mainnet chain fork caused by mixed timestamp-based and block-height-based staking epoch calculation"
+    }
+  </script>
+</head>
+<body>
+  <main>
+    <header>
+      <h1>Staking Epoch Fork Mitigation Branch Comparison</h1>
+      <p class="lede">
+        This report compares <code>main</code> with <code>fix/consensus-evm-state-guard</code> for the current mainnet
+        fork problem: some nodes derive staking epochs from timestamps while others derive them from block height,
+        causing different staking reward/tally state and therefore different EVM block hashes.
+      </p>
+      <div class="meta">
+        <div><span>Base</span><strong>main @ 1e57765</strong></div>
+        <div><span>Comparison</span><strong>fix/consensus-evm-state-guard @ 6082849</strong></div>
+        <div><span>Merge Base</span><strong>4092a4d</strong></div>
+        <div><span>Generated</span><strong>2026-07-02</strong></div>
+      </div>
+    </header>
+
+    <section class="summary">
+      <div class="callout good">
+        <h2 style="margin-top:0">Bottom Line</h2>
+        <p>
+          <code>main</code> matches the stated intent. It keeps mainnet staking epoch calculation timestamp-based and
+          adds a P2P EVM checkpoint gate so peers must advertise a safe EVM hash and state root roughly 5,000 EVM
+          blocks behind their head.
+        </p>
+        <p>
+          <code>fix/consensus-evm-state-guard</code> keeps the same timestamp epoch calculation, but it does not
+          implement the P2P "show a hash 5k before tip" compatibility gate. Its main addition is a local EVM state
+          guard that is useful as a hardening layer only when all nodes are configured consistently.
+        </p>
+      </div>
+      <div class="callout bad">
+        <h2 style="margin-top:0">Main Risk In Fix Branch</h2>
+        <p>
+          The fix branch changes staking reward split selection to read and write a local DB sidecar keyed by epoch.
+          That state is not in the block, so stale or divergent local DB values can create exactly the kind of
+          node-local consensus divergence this incident is trying to remove.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Problem Model</h2>
+      <div class="card">
+        <p>
+          The fork occurs when two nodes process the same native block sequence but compute a different staking epoch.
+          A timestamp-based node rotates chain tally and staking reward state when
+          <code>(header.Time - genesisTime) / epochSeconds</code> crosses the boundary. A block-height-based node rotates
+          at <code>header.Number / interval</code>. Around boundaries, these can disagree even with the same transactions.
+        </p>
+        <p>
+          Once the epoch differs, staking tallies, auto-stake accounting, miner/staker rewards, and resulting EVM state
+          root can diverge. The network then needs both a canonical rule and a way to stop syncing from peers that are
+          already on the other rule.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Side-by-Side Comparison</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Area</th>
+            <th><code>main</code></th>
+            <th><code>fix/consensus-evm-state-guard</code></th>
+            <th>Impact on current fork</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Branch shape</td>
+            <td><span class="status good">Current line</span><br>Includes recent sync and EVM checkpoint commits after the merge base.</td>
+            <td><span class="status warn">Diverged</span><br>Tip diverges before the recent EVM checkpoint protocol work and carries three branch-only commits.</td>
+            <td>The comparison is not a small patch delta. Taking the fix branch as-is drops main's P2P checkpoint solution.</td>
+          </tr>
+          <tr>
+            <td>Canonical staking epoch rule</td>
+            <td><span class="status good">Timestamp</span><br>Mainnet uses <code>604800</code> seconds and <code>header.Time</code>.</td>
+            <td><span class="status good">Timestamp</span><br>The same <code>epoch.go</code> logic is present on the fix branch.</td>
+            <td>Both branch tips choose time-based mainnet epoch logic. This is the required consensus rule.</td>
+          </tr>
+          <tr>
+            <td>Height-based fallback</td>
+            <td>Still present only for networks without an explicit staking epoch duration.</td>
+            <td>Same fallback.</td>
+            <td>Not a mainnet concern as long as mainnet remains hardwired to timestamp duration.</td>
+          </tr>
+          <tr>
+            <td>P2P peer compatibility gate</td>
+            <td><span class="status good">Implemented</span><br>Protocol v46 requires <code>ChainState.evmCheckpoint</code>.</td>
+            <td><span class="status bad">Missing</span><br>Protocol version remains v45 and chain state has no EVM checkpoint field.</td>
+            <td>Main can ignore old or divergent peers before or during sync. The fix branch cannot prove peer compatibility at handshake.</td>
+          </tr>
+          <tr>
+            <td>"5k before tip" mechanism</td>
+            <td><span class="status good">Implemented</span><br><code>SafeEVMCheckpointDepth</code> is <code>5_000</code>. Nodes advertise EVM block <code>head - 5000</code> with hash and state root.</td>
+            <td><span class="status bad">Not present</span><br>No matching P2P checkpoint exchange exists on this branch.</td>
+            <td>This is the core mechanism that isolates nodes still producing height-based EVM history.</td>
+          </tr>
+          <tr>
+            <td>Block import enforcement</td>
+            <td>Stores a peer's EVM checkpoint and compares locally built EVM blocks against it when processing blocks from that peer.</td>
+            <td>Rejects peers only when a block triggers the local EVM state guard.</td>
+            <td>Main filters peers based on advertised safe history. Fix reacts to local guard failures after receiving blocks.</td>
+          </tr>
+          <tr>
+            <td>Local EVM state guard</td>
+            <td>Not present.</td>
+            <td><span class="status warn">Opt-in</span><br>Adds <code>--evmstateguard</code>, trusted checkpoints, and optional header state commitments.</td>
+            <td>Potentially useful hardening, but not a network-wide fork fix unless all nodes share configuration and enforcement.</td>
+          </tr>
+          <tr>
+            <td>Miner split source</td>
+            <td><span class="status good">On-chain state</span><br>Reads miner split from EVM state each block and has a test proving stale sidecar data is ignored.</td>
+            <td><span class="status bad">Local sidecar</span><br>Reads <code>ReadEpochMinerSplit</code> first and writes <code>WriteEpochMinerSplit</code> on first use.</td>
+            <td>The fix branch introduces local consensus input that can diverge across nodes.</td>
+          </tr>
+          <tr>
+            <td>Test coverage</td>
+            <td>Timestamp epoch boundary tests, EVM checkpoint validation, chain-state checkpoint round trip, and stale-sidecar ignore test.</td>
+            <td>Timestamp epoch tests and EVM state guard unit tests. No P2P checkpoint tests and no stale-sidecar ignore test.</td>
+            <td>Main has tests for the stated solution. Fix tests its guard mechanics but not the requested P2P quarantine path.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Resolution Flow</h2>
+      <div class="grid">
+        <div class="card">
+          <h3><code>main</code>: canonical epoch plus peer quarantine</h3>
+          <div class="flow">
+            <div class="step"><strong>1. Epoch</strong>Mainnet uses timestamp duration.</div>
+            <div class="step"><strong>2. EVM state</strong>Rewards and tallies produce deterministic EVM header.</div>
+            <div class="step"><strong>3. Safe point</strong>Advertise EVM head minus 5,000.</div>
+            <div class="step"><strong>4. P2P gate</strong>Reject missing, old, or mismatched checkpoint peers.</div>
+            <div class="step"><strong>5. Import</strong>Use peer checkpoint while processing blocks from that peer.</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3><code>fix/consensus-evm-state-guard</code>: local guard path</h3>
+          <div class="flow">
+            <div class="step"><strong>1. Epoch</strong>Mainnet also uses timestamp duration.</div>
+            <div class="step"><strong>2. Split</strong>May use local epoch-split sidecar before on-chain state.</div>
+            <div class="step"><strong>3. Guard</strong>Dry-run EVM block if guard enabled.</div>
+            <div class="step"><strong>4. Checkpoint</strong>Compare to configured trusted EVM checkpoint or state commitment.</div>
+            <div class="step"><strong>5. Peer action</strong>Disconnect peer after guard rejection.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Detailed Findings</h2>
+      <div class="evidence">
+        <div class="card">
+          <h3>Main timestamp epoch logic</h3>
+          <p>
+            Mainnet is forced to timestamp math using a hardcoded week duration. The function uses
+            <code>header.Time</code> and the active network genesis timestamp, not block height.
+          </p>
+          <pre>main:bevm/bdag/consensus/epoch.go
+8   const mainnetStakingEpochDurationSeconds uint64 = 604800
+19  return timestampStakingEpochForHeader(header, mainnetStakingEpochDurationSeconds)
+32  func timestampStakingEpochForHeader(header *types.Header, durationSeconds uint64) uint64</pre>
+        </div>
+
+        <div class="card">
+          <h3>Main P2P checkpoint gate</h3>
+          <p>
+            Main extends chain state with an EVM checkpoint and bumps the protocol to v46. A peer that cannot provide
+            the checkpoint is rejected as a DAG consensus mismatch.
+          </p>
+          <pre>main:core/blockchain/evm_checkpoint.go
+10  const SafeEVMCheckpointDepth uint64 = 5_000
+22  return b.bdagChain.SafeEVMCheckpoint(SafeEVMCheckpointDepth)
+
+main:p2p/synch/chainstate.go
+106 if msg.ProtocolVersion &lt; uint32(protocol.EVMCheckpointProtocolVersion)
+110 if err := s.validateChainStateEVMCheckpoint(msg); err != nil
+141 EvmCheckpoint: s.getEVMCheckpoint()</pre>
+        </div>
+
+        <div class="card">
+          <h3>Main import-time protection</h3>
+          <p>
+            Main validates the peer's advertised checkpoint before and after block processing, and passes the stored
+            peer checkpoint into block connection so a locally built EVM block must match the peer's claimed safe hash.
+          </p>
+          <pre>main:p2p/synch/evm_checkpoint.go
+10  func (ps *PeerSync) validatePeerEVMCheckpoint(pe *peers.Peer) error
+39  func (ps *PeerSync) rejectPeerForEVMCheckpoint(pe *peers.Peer, err error)
+
+main:core/blockchain/process.go
+292 evmCheckpoint, _ := b.peerEVMCheckpoint(source)
+
+main:core/blockchain/bdagchain.go
+38  if err := validateBuiltEVMCheckpoint(eb.EvmBlock, checkpoint); err != nil</pre>
+        </div>
+
+        <div class="card">
+          <h3>Fix branch local EVM guard</h3>
+          <p>
+            The fix branch adds an EVM state guard with advisory or enforce modes. It can validate configured EVM
+            checkpoints and optional native header state commitments, but it is local configuration rather than a P2P
+            compatibility proof.
+          </p>
+          <pre>fix/consensus-evm-state-guard:core/blockchain/evm_state_guard.go
+64  func newEVMStateGuard(mode string, checkpointSpecs []string, commitmentStartOrder uint64)
+244 func (b *BlockChain) PrepareEVMStateCommitmentForTemplate(...)
+303 func (b *BlockChain) checkEVMStateGuardBeforeStore(...)
+331 func (b *BlockChain) checkEVMStateGuardCandidate(...)
+356 func (b *BlockChain) handleEVMStateGuardError(...)</pre>
+        </div>
+
+        <div class="card">
+          <h3>Fix branch lacks main's network gate</h3>
+          <p>
+            The fix branch's protocol version remains v45 and chain state has no EVM checkpoint field. It therefore
+            cannot implement the requested "ignore peers unable to show a 5k-safe hash" behavior.
+          </p>
+          <pre>fix/consensus-evm-state-guard:core/protocol/protocol.go
+24  BroadcastblockProtocolVersion uint32 = 45
+27  ProtocolVersion uint32 = BroadcastblockProtocolVersion
+
+fix/consensus-evm-state-guard:p2p/proto/v1/chainstate.proto
+No EVMCheckpoint message or ChainState.evmCheckpoint field</pre>
+        </div>
+
+        <div class="card">
+          <h3>Fix branch sidecar split risk</h3>
+          <p>
+            The fix branch reads a locally persisted split before reading contract state. This can become a consensus
+            input that is different per node.
+          </p>
+          <pre>fix/consensus-evm-state-guard:bevm/bdag/consensus/consensus.go
+198 splitVal := ReadEpochMinerSplit(me.database, currentEpoch)
+212 WriteEpochMinerSplit(me.database, currentEpoch, minerSplit)
+
+fix/consensus-evm-state-guard:bevm/bdag/consensus/epoch_store.go
+13  epochMinerSplitPrefix = []byte("EMS")
+24  func ReadEpochMinerSplit(db ethdb.KeyValueReader, epoch uint64) *big.Int</pre>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Operational Consequences</h2>
+      <div class="verdict">
+        <div class="callout good">
+          <h3 style="margin-top:0">Using <code>main</code></h3>
+          <ul>
+            <li>Nodes converge on timestamp-based staking epochs for mainnet.</li>
+            <li>Old protocol peers and peers missing the EVM checkpoint are rejected.</li>
+            <li>Peers on a height-based fork should fail the EVM checkpoint hash/root comparison once local history is known.</li>
+            <li>Rollout requires enough v46 peers to avoid isolating upgraded nodes from the network.</li>
+          </ul>
+        </div>
+        <div class="callout warning">
+          <h3 style="margin-top:0">Using the fix branch as-is</h3>
+          <ul>
+            <li>Timestamp epoch calculation is present, so nodes on this branch should not use height logic for mainnet.</li>
+            <li>There is no handshake-level proof that a peer is on the same timestamp-based EVM history.</li>
+            <li>The guard is off unless configured, except if a future params-level commitment start order is set.</li>
+            <li>The epoch split sidecar can create node-local reward split divergence.</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Recommendation</h2>
+      <div class="card">
+        <p>
+          Use <code>main</code> as the base for the current incident response. It implements the intended solution:
+          canonical timestamp-based mainnet staking epochs plus P2P rejection of peers that cannot present the safe EVM
+          checkpoint derived from that rule.
+        </p>
+        <p>
+          If the EVM state guard work from <code>fix/consensus-evm-state-guard</code> is still desired, port it as a
+          separate hardening layer after the network checkpoint solution is preserved. Before porting, remove or redesign
+          the local epoch miner-split sidecar so consensus-critical reward split remains derived from block/state data
+          that every node can reproduce.
+        </p>
+        <p>
+          Do not replace <code>main</code>'s P2P checkpoint path with the fix branch. The fix branch is a local validation
+          mechanism, not the requested network quarantine mechanism.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2>Merge Checklist</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Item</th>
+            <th>Keep from <code>main</code></th>
+            <th>Potentially port from fix branch</th>
+            <th>Condition before merge</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>P2P checkpoint protocol</td>
+            <td><span class="status good">Yes</span></td>
+            <td>No</td>
+            <td>Must remain protocol v46 with <code>ChainState.evmCheckpoint</code>.</td>
+          </tr>
+          <tr>
+            <td>Timestamp epoch math</td>
+            <td><span class="status good">Yes</span></td>
+            <td>Already same</td>
+            <td>Protect tests for mainnet timestamp boundary cases.</td>
+          </tr>
+          <tr>
+            <td>EVM state guard</td>
+            <td>No</td>
+            <td><span class="status warn">Maybe</span></td>
+            <td>Make rollout rules explicit and ensure guard config cannot split consensus.</td>
+          </tr>
+          <tr>
+            <td>Epoch miner-split sidecar</td>
+            <td>No</td>
+            <td><span class="status bad">Avoid</span></td>
+            <td>Do not use local DB values as consensus inputs.</td>
+          </tr>
+          <tr>
+            <td>Peer punishment on guard rejection</td>
+            <td>Main uses checkpoint rejection.</td>
+            <td><span class="status warn">Maybe</span></td>
+            <td>Only as a supplement after preserving checkpoint-based rejection.</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Evidence Map</h2>
+      <div class="grid">
+        <div class="card">
+          <h3>Main evidence</h3>
+          <ul class="refs">
+            <li>main:bevm/bdag/consensus/epoch.go:8,19,32,44</li>
+            <li>main:bevm/bdag/consensus/staking_test.go:97,136,154,213</li>
+            <li>main:core/blockchain/evm_checkpoint.go:10,18,22,51</li>
+            <li>main:bevm/bdag/bdagchain.go:337,357</li>
+            <li>main:core/protocol/protocol.go:27,30</li>
+            <li>main:p2p/proto/v1/chainstate.proto:9,23</li>
+            <li>main:p2p/synch/chainstate.go:106,110,141,162</li>
+            <li>main:p2p/synch/evm_checkpoint.go:10,39</li>
+            <li>main:p2p/synch/peer_block_intake.go:177,191,230,328</li>
+            <li>main:core/blockchain/bdagchain.go:38,44</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Fix branch evidence</h3>
+          <ul class="refs">
+            <li>fix/consensus-evm-state-guard:bevm/bdag/consensus/epoch.go:8,19,32,44</li>
+            <li>fix/consensus-evm-state-guard:core/protocol/protocol.go:24,27</li>
+            <li>fix/consensus-evm-state-guard:p2p/proto/v1/chainstate.proto</li>
+            <li>fix/consensus-evm-state-guard:bevm/bdag/consensus/consensus.go:198,212</li>
+            <li>fix/consensus-evm-state-guard:bevm/bdag/consensus/epoch_store.go:13,24,33</li>
+            <li>fix/consensus-evm-state-guard:config/config.go:177,178,179</li>
+            <li>fix/consensus-evm-state-guard:core/blockchain/evm_state_guard.go:64,244,303,331,356</li>
+            <li>fix/consensus-evm-state-guard:core/blockchain/process.go:268,309,439,456</li>
+            <li>fix/consensus-evm-state-guard:p2p/synch/peer_block_intake.go:92,133,145</li>
+            <li>fix/consensus-evm-state-guard:core/blockchain/evm_state_guard_test.go:16,42,76,103,112</li>
+          </ul>
+        </div>
+      </div>
+      <p class="small">
+        Note: references are branch-qualified because this report was created without switching the working tree.
+      </p>
+    </section>
+  </main>
+</body>
+</html>

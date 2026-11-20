@@ -1,0 +1,41 @@
+version = 1
+
+SPDX-PackageName = "BlockDAG corechain"
+SPDX-PackageDownloadLocation = "NOASSERTION"
+
+# Only paths with a concrete header or adjacent upstream licence are mapped.
+# Unmapped paths are intentionally unresolved; the project GPL default is not
+# a blanket ownership or relicensing assertion.
+[[annotations]]
+path = "deps/go-ethereum/cmd/utils/cmd.go"
+SPDX-FileCopyrightText = "Copyright 2014 The go-ethereum Authors"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "deps/go-ethereum/cmd/utils/flags.go"
+SPDX-FileCopyrightText = "Copyright 2015 The go-ethereum Authors"
+SPDX-License-Identifier = "GPL-3.0-or-later"
+
+[[annotations]]
+path = "blake2sext/*.go"
+SPDX-FileCopyrightText = "Copyright 2016-2017 The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "crypto/ecc/ed25519/internal/edwards25519/*.go"
+SPDX-FileCopyrightText = "Copyright 2016 The Go Authors"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "crypto/x16rv3/whirlpool/*.go"
+SPDX-FileCopyrightText = "Copyright 2012 Jimmy Zelinskie"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = "common/network/socket.go"
+SPDX-FileCopyrightText = "Copyright (c) 2012 Samuel Stauffer"
+SPDX-License-Identifier = "BSD-3-Clause"
+
+[[annotations]]
+path = ["bevm/Contract-Blocklist/src/*.sol", "bevm/Contract-Blocklist/test/*.sol"]
+SPDX-License-Identifier = "MIT"

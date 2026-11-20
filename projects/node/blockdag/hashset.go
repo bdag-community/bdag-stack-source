@@ -1,0 +1,209 @@
+package Blockdag
+
+import (
+	"sort"
+
+	"github.com/ethereum/go-ethereum/common"
+)
+
+// On the Set of hash, and the saved data can be of any type
+type HashSet struct {
+	m map[common.Hash]any
+}
+
+// Return the map
+func (s *HashSet) GetMap() map[common.Hash]any {
+	return s.m
+}
+
+// Add the key of element
+func (s *HashSet) Add(elem *common.Hash) {
+	s.m[*elem] = Empty{}
+}
+
+// Add one pair of data
+func (s *HashSet) AddPair(elem *common.Hash, data any) {
+	s.m[*elem] = data
+}
+
+// Remove the element
+func (s *HashSet) Remove(elem *common.Hash) {
+	delete(s.m, *elem)
+}
+
+// Add elements from set
+func (s *HashSet) AddSet(other *HashSet) {
+	if other == nil || other.Size() == 0 {
+		return
+	}
+	for k, v := range other.GetMap() {
+		s.AddPair(&k, v)
+	}
+}
+
+func (s *HashSet) RemoveSet(other *HashSet) {
+	if other == nil || other.Size() == 0 {
+		return
+	}
+	for k := range other.GetMap() {
+		s.Remove(&k)
+	}
+}
+
+func (s *HashSet) AddList(list []*common.Hash) {
+	if len(list) == 0 {
+		return
+	}
+	for _, v := range list {
+		s.Add(v)
+	}
+}
+
+// return union of a set
+func (s *HashSet) Union(other *HashSet) *HashSet {
+	result := s.Clone()
+	if s != other {
+		result.AddSet(other)
+	}
+	return result
+}
+
+// This function returns a new open memory (HashSet)
+// The intersection of a set
+func (s *HashSet) Intersection(other *HashSet) *HashSet {
+	result := NewHashSet()
+	if s == other {
+		result.AddSet(s)
+	} else {
+		if other != nil && other.Size() > 0 {
+			for k := range other.GetMap() {
+				if s.Has(&k) {
+					result.Add(&k)
+				}
+			}
+		}
+	}
+	return result
+}
+
+func (s *HashSet) Exclude(other *HashSet) {
+	if other != nil && other.Size() > 0 {
+		for k := range other.GetMap() {
+			if s.Has(&k) {
+				s.Remove(&k)
+			}
+		}
+	}
+}
+
+func (s *HashSet) Has(elem *common.Hash) bool {
+	_, ok := s.m[*elem]
+	return ok
+}
+
+func (s *HashSet) HasOnly(elem *common.Hash) bool {
+	return s.Size() == 1 && s.Has(elem)
+}
+
+func (s *HashSet) Get(elem *common.Hash) any {
+	return s.m[*elem]
+}
+
+func (s *HashSet) Size() int {
+	return len(s.m)
+}
+
+func (s *HashSet) IsEmpty() bool {
+	return s.Size() == 0
+}
+
+func (s *HashSet) List() []*common.Hash {
+	list := make([]*common.Hash, 0, len(s.m))
+	for item := range s.m {
+		kv := item
+		list = append(list, &kv)
+	}
+	return list
+}
+
+func (s *HashSet) SortList(reverse bool) []*common.Hash {
+	list := HashSlice(s.List())
+	if reverse {
+		sort.Sort(sort.Reverse(list))
+	} else {
+		sort.Sort(list)
+	}
+	return list
+}
+
+func (s *HashSet) IsEqual(other *HashSet) bool {
+	var k common.Hash
+	for k = range s.m {
+		if !other.Has(&k) {
+			return false
+		}
+	}
+	for k = range other.m {
+		if !s.Has(&k) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func (s *HashSet) Contain(other *HashSet) bool {
+	if other.IsEmpty() {
+		return false
+	}
+	for k := range other.GetMap() {
+		if !s.Has(&k) {
+			return false
+		}
+	}
+	return true
+}
+
+// return a new copy
+func (s *HashSet) Clone() *HashSet {
+	result := NewHashSet()
+	result.AddSet(s)
+	return result
+}
+
+func (s *HashSet) Clean() {
+	s.m = map[common.Hash]any{}
+}
+
+// Create a new HashSet
+func NewHashSet() *HashSet {
+	return &HashSet{
+		m: map[common.Hash]any{},
+	}
+}
+
+func GetMaxLenHashSet(bsm map[common.Hash]*HashSet) *common.Hash {
+
+	var result common.Hash
+	var curNum int = 0
+	for k, v := range bsm {
+		if curNum == 0 {
+			result = k
+			curNum = v.Size()
+		} else {
+			if v.Size() > curNum {
+				curNum = v.Size()
+				result = k
+			} else if v.Size() == curNum {
+				if k.String() < result.String() {
+					result = k
+				}
+			}
+		}
+
+	}
+	return &result
+}
+
+// This struct is empty
+type Empty struct{}

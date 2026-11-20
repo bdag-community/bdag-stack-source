@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Nodeworker Template Health Context Plan</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f8fb;
+      --panel: #ffffff;
+      --ink: #1d2433;
+      --line: #d8deea;
+      --accent: #1769aa;
+      --ok: #1b7f4b;
+      --warn: #9a5200;
+    }
+    body {
+      margin: 0;
+      font: 15px/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+    }
+    main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 48px; }
+    header { border-bottom: 1px solid var(--line); margin-bottom: 24px; padding-bottom: 18px; }
+    h1 { margin: 0 0 8px; font-size: 28px; letter-spacing: 0; }
+    h2 { margin: 28px 0 12px; font-size: 18px; }
+    p { margin: 0 0 12px; }
+    code {
+      background: rgba(23, 105, 170, 0.08);
+      border: 1px solid rgba(23, 105, 170, 0.18);
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-size: 0.92em;
+    }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(255px, 1fr)); gap: 12px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 14px; }
+    .tag {
+      display: inline-block;
+      border-radius: 999px;
+      padding: 2px 8px;
+      margin: 0 6px 6px 0;
+      font-size: 12px;
+      font-weight: 650;
+      background: rgba(23, 105, 170, 0.1);
+      color: var(--accent);
+    }
+    .ok { color: var(--ok); font-weight: 650; }
+    .warn { color: var(--warn); font-weight: 650; }
+    li { margin: 6px 0; }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Nodeworker Template Health Context</h1>
+    <p>
+      <span class="tag">Repo: blockdag-corechain</span>
+      <span class="tag">Branch: feature/corechain-nodeworker-template-health-context</span>
+      <span class="tag">Base: feature/corechain-p2p-freshness-metrics</span>
+      <span class="tag">Risk: low</span>
+    </p>
+    <p>This task makes nodeworker readiness warnings carry the source-level mining health context already exposed by the miner API.</p>
+  </header>
+
+  <section class="grid">
+    <article class="card">
+      <h2>Problem</h2>
+      <p>PRs #19 and #20 expose template build latency and P2P freshness through <code>getTemplateHealth</code>, but nodeworker still logs only the older mineable/submit-ready fields.</p>
+    </article>
+    <article class="card">
+      <h2>Goal</h2>
+      <p>Decode the advisory fields and include them in readiness failure context so operators and watchdogs can see whether a warning is template-age, build-latency, or P2P-freshness related.</p>
+    </article>
+    <article class="card">
+      <h2>Safety Boundary</h2>
+      <p class="warn">Do not make stale P2P freshness restart-eligible by itself. This branch is log/context enrichment only.</p>
+    </article>
+    <article class="card">
+      <h2>Outcome</h2>
+      <p class="ok">Future incidents should have richer source-level context without changing node behavior, consensus, peer selection, or mining policy.</p>
+    </article>
+  </section>
+
+  <h2>Fields To Surface</h2>
+  <ul>
+    <li><code>template_age_ms</code>, <code>last_good_template_age_ms</code>, <code>latest_template_seq</code>.</li>
+    <li><code>last_template_build_duration_ms</code>, <code>last_template_build_reason</code>, <code>last_template_build_error_code</code>.</li>
+    <li><code>p2p_mining_fresh</code>, <code>p2p_mining_fresh_reason_code</code>, consensus peer counts, peer lead, and graph-state ages.</li>
+  </ul>
+
+  <h2>Definition Of Done</h2>
+  <ul>
+    <li>Design committed before code changes.</li>
+    <li>Nodeworker decodes the new fields without requiring them from older nodes.</li>
+    <li>Readiness failure text includes advisory context only when meaningful.</li>
+    <li>Tests prove advisory P2P/build fields do not change restart eligibility.</li>
+    <li>Focused nodeworker/miner tests and relevant package tests pass.</li>
+  </ul>
+</main>
+<script type="application/json" id="agent-metadata">
+{
+  "repo": "BlockdagEngineering/blockdag-corechain",
+  "branch": "feature/corechain-nodeworker-template-health-context",
+  "base_branch": "feature/corechain-p2p-freshness-metrics",
+  "live_services_touched": false,
+  "target_files": [
+    "docs/nodeworker-template-health-context-plan.html",
+    "cmd/nodeworker/worker.go",
+    "cmd/nodeworker/worker_test.go"
+  ],
+  "goal": "Make nodeworker mining-readiness warnings include template build and P2P freshness context without changing restart behavior."
+}
+</script>
+</body>
+</html>

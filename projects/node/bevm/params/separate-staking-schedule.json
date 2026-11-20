@@ -1,0 +1,12 @@
+{
+  "earliestEvmBlock": 620000,
+  "policy": {
+    "version": 1,
+    "artifactSha256": "0x3e93657b71f9cdf3562a61c963541e9a41417c6a1ee98e6e1933ef1acedf7436",
+    "signalStartLayer": 562000,
+    "activationLayer": 565999,
+    "releaseDistributedAt": 1793403000,
+    "noticePublishedAt": 1793403000,
+    "notBeforeTimestamp": 1793489400
+  }
+}

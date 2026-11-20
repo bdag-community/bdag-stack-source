@@ -1,0 +1,14 @@
+{
+  "accepted": false,
+  "final": false,
+  "retryable": true,
+  "code": "duplicate",
+  "message": "duplicate block without an authoritative final local disposition",
+  "block_hash": "0x0000000000000000000000000000000000000000000000000000000000000104",
+  "coinbase_txid": "",
+  "order": "",
+  "height": 0,
+  "coinbase_amount": 0,
+  "miner_type": "GBT",
+  "template_seq": 42
+}

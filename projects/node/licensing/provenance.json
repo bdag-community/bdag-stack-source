@@ -1,0 +1,159 @@
+{
+  "schema_version": "blockdag-provenance/v1",
+  "project_license": "GPL-3.0-or-later",
+  "publication_ready": false,
+  "unresolved": [
+    {
+      "id": "headerless-or-unmapped-owned-material",
+      "paths": [
+        "services/gateway/handler.go",
+        "common/encode/rlp/iterator_test.go"
+      ],
+      "reason": "These files have no complete file-level ownership and licence grant record in the inspected snapshot; the project default cannot be used as a blanket assertion.",
+      "required_evidence": "Confirm BlockDAG ownership and contributor grant, then add a file-level SPDX record or an authoritative mapping."
+    },
+    {
+      "id": "copied-code-missing-referenced-licence-texts",
+      "paths": [
+        "blake2sext/blake2s_generic.go",
+        "crypto/ecc/ed25519/curve.go"
+      ],
+      "reason": "Headers identify upstream authors and refer to a missing LICENSE file; exact source revisions and complete copyright text were not established for every remaining copied family.",
+      "required_evidence": "Pin each upstream source revision, recover its exact licence/notice, compare modifications, and retain the applicable notice."
+    },
+    {
+      "id": "history-and-binaries-excluded",
+      "paths": [
+        ".git/",
+        "bdag",
+        "build/bin/",
+        "data/",
+        "remote-data-synced/",
+        "*.zip",
+        "*.tar.gz"
+      ],
+      "reason": "History, generated/tracked binaries, chain data, and release archives were excluded from the source scan and are not licence-cleared by this inventory.",
+      "required_evidence": "For each actual release, bind artifacts to source, dependency notices, reproducible build inputs, and distribution rights."
+    }
+  ],
+  "components": [
+    {
+      "name": "go-ethereum command code",
+      "paths": [
+        "deps/go-ethereum/cmd/utils/cmd.go",
+        "deps/go-ethereum/cmd/utils/flags.go"
+      ],
+      "license": "GPL-3.0-or-later",
+      "source": "go-ethereum vendored tree and import path",
+      "evidence": "Headers in deps/go-ethereum/cmd/utils/{cmd.go,flags.go}; exact text preserved in COPYING and LICENSES/GPL-3.0-or-later.txt"
+    },
+    {
+      "name": "go-ethereum libraries",
+      "paths": [
+        "deps/go-ethereum/common/",
+        "deps/go-ethereum/rlp/",
+        "p2p/netutil/"
+      ],
+      "license": "LGPL-3.0-or-later",
+      "source": "go-ethereum vendored tree",
+      "evidence": "Inherited file headers and deps/go-ethereum/COPYING.LESSER; exact text preserved in LICENSES/LGPL-3.0-or-later.txt"
+    },
+    {
+      "name": "btcsuite and Decred",
+      "paths": [
+        "params/",
+        "database/",
+        "engine/txscript/",
+        "crypto/ecc/ed25519/curve.go"
+      ],
+      "license": "ISC",
+      "source": "file headers naming btcsuite and Decred",
+      "evidence": "Header scan plus LICENSES/ISC-btcsuite.txt and LICENSES/ISC-decred.txt"
+    },
+    {
+      "name": "Go Authors cryptographic code",
+      "paths": [
+        "blake2sext/",
+        "crypto/ecc/ed25519/internal/edwards25519/"
+      ],
+      "license": "BSD-3-Clause",
+      "source": "file headers naming The Go Authors",
+      "evidence": "Header scan; module cache licence copied to LICENSES/BSD-3-Clause-Go.txt"
+    },
+    {
+      "name": "Samuel Stauffer SOCKS code",
+      "paths": [
+        "common/network/socket.go"
+      ],
+      "license": "BSD-3-Clause",
+      "source": "samuel/go-socks at f6c5f6a06ef657d2b7b1f56a09a01de63381f665",
+      "evidence": "209 matching lines, longest block 48; exact LICENSE preserved adjacent and in LICENSES/BSD-3-Clause-SOCKS.txt with SHA256 fa6126fdc5e0cc53b67d35f0f5b2505751fd8d187671bbd356bd876691670f38"
+    },
+    {
+      "name": "Jimmy Zelinskie Whirlpool code",
+      "paths": [
+        "crypto/x16rv3/whirlpool/"
+      ],
+      "license": "BSD-3-Clause",
+      "source": "jzelinskie/whirlpool at 0675e54bb004a465b226b483b0d67d445fb27baa",
+      "evidence": "237 matching lines, longest block 214; exact LICENSE preserved adjacent and in LICENSES/BSD-3-Clause-Whirlpool.txt with SHA256 b985b1162daa4eb2059ba6d434a73f5a160370506d49f1c7e426ed1c554efb35"
+    },
+    {
+      "name": "BIP39",
+      "paths": [
+        "crypto/bip39/"
+      ],
+      "license": "MIT",
+      "source": "repository crypto/bip39/LICENSE",
+      "evidence": "Preserved exact text in LICENSES/MIT-bip39.txt"
+    },
+    {
+      "name": "Alan Shreve logging helper",
+      "paths": [
+        "log/"
+      ],
+      "license": "Apache-2.0",
+      "source": "repository log/LICENSE",
+      "evidence": "Preserved exact text in LICENSES/Apache-2.0-log.txt"
+    },
+    {
+      "name": "BlockCypher Cuckaroom",
+      "paths": [
+        "crypto/cuckoo/"
+      ],
+      "license": "Apache-2.0",
+      "source": "crypto/cuckoo/cuckaroom.go header",
+      "evidence": "Copyright 2020 BlockCypher and Apache-2.0 notice retained in source"
+    },
+    {
+      "name": "BlockDAG crypto fork",
+      "paths": [
+        "common/hash/",
+        "go.mod"
+      ],
+      "license": "BSD-3-Clause",
+      "source": "github.com/BlockdagNetworkLabs/crypto at aa4cf9dc20f8",
+      "evidence": "Cached module LICENSE names The Go Authors; fork provenance remains unresolved"
+    },
+    {
+      "name": "CryptoNight fork",
+      "paths": [
+        "common/hash/hashfuncs_bdag_crypto_night.go",
+        "go.mod"
+      ],
+      "license": "MIT with unresolved Monero-derived JH lineage",
+      "source": "github.com/BlockdagNetworkLabs/crypto/cryptonight at aa4cf9dc20f8",
+      "evidence": "Cached LICENSE names Equim; README and jh/jh.go reference Monero source"
+    },
+    {
+      "name": "sphlib JH and Groestl",
+      "paths": [
+        "deps/cryptonight/jh/",
+        "deps/cryptonight/groestl/"
+      ],
+      "license": "MIT",
+      "source": "https://github.com/pornin/sphlib/tree/15b6b8d8f3e4a43c58ba102d712fa6b8a3317035/c",
+      "evidence": "Original in-file notices and LICENSE.sphlib retained; Go wrappers GPL-3.0-or-later. Replaces the previously reviewed Monero-derived implementations."
+    }
+  ]
+}

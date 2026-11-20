@@ -1,0 +1,19 @@
+{
+  "schema": "bdag.component-capabilities.v1",
+  "component": "corechain",
+  "component_version": "development",
+  "apis": {
+    "corechain.native": {
+      "current": "1.2.0",
+      "supported_majors": [1],
+      "transports": ["json-rpc-2.0/http", "json-rpc-2.0/websocket"],
+      "contract": "api/openrpc.json"
+    },
+    "corechain.evm": {
+      "current": "1.0.0",
+      "supported_majors": [1],
+      "transports": ["ethereum-json-rpc-2.0/http", "ethereum-json-rpc-2.0/websocket"],
+      "contract": "api/openrpc.json"
+    }
+  }
+}

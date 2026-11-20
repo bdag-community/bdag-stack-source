@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package network.p2p.v1;
+
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+import "message.proto";
+import "graphstate.proto";
+
+message SyncDAG {
+  repeated Hash mainLocator =1 [(gogoproto.moretags) = "ssz-max:\"32\""];
+  GraphState graphState = 2;
+}
+
+message SubDAG {
+  Hash syncPoint =1;
+  GraphState graphState = 2;
+  repeated Hash blocks =3 [(gogoproto.moretags) = "ssz-max:\"2000\""];
+}
+
+message ContinueSyncDAG {
+  Hash syncPoint =1;
+  Hash start =2;
+}

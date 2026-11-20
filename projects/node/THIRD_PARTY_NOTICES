@@ -1,0 +1,24 @@
+# Third-party notices
+
+This inventory records source evidence and preserved notices for this audited
+snapshot. It is not legal clearance. Paths are repository-relative; a source
+hash identifies the inspected snapshot, not a permission grant.
+
+| Material | Paths | Terms and evidence |
+| --- | --- | --- |
+| go-ethereum command code | `deps/go-ethereum/cmd/utils/cmd.go`, `deps/go-ethereum/cmd/utils/flags.go` | GPL-3.0-or-later. These vendored command files retain go-ethereum headers and are imported by `bevm/cmd/cmds.go`. Exact text: `LICENSES/GPL-3.0-or-later.txt` and `COPYING`. |
+| go-ethereum libraries | `deps/go-ethereum/common/**`, `deps/go-ethereum/rlp/**`, `p2p/netutil/**` | LGPL-3.0-or-later where the inherited headers say so. Exact text: `LICENSES/LGPL-3.0-or-later.txt`. |
+| btcsuite and Decred code | `params/**`, `database/**`, `engine/txscript/**`, `crypto/ecc/ed25519/curve.go` | ISC headers naming btcsuite/Decred. Texts: `LICENSES/ISC-btcsuite.txt` and `LICENSES/ISC-decred.txt`. The edwards curve file closely matches Decred commit `b6d426241d2dd01af15425652dc4a878b3559779`; that revision's exact license is in `LICENSES/ISC-decred-2016.txt`. |
+| Go Authors BLAKE2 and edwards code | `blake2sext/**`, `crypto/ecc/ed25519/internal/edwards25519/**` | BSD-style headers naming Go Authors. Text: `LICENSES/BSD-3-Clause-Go.txt`. `blake2sext/blake2s_generic.go` matches Go crypto commit `ac88ee75c92c889b97e05591e9a39b6480c538b3` after changing the package name. |
+| SOCKS implementation | `common/network/socket.go` | 3-clause BSD, Copyright 2012 Samuel Stauffer. Exact upstream text is preserved in `common/network/LICENSE` and `LICENSES/BSD-3-Clause-SOCKS.txt`, matched to `samuel/go-socks` commit `f6c5f6a06ef657d2b7b1f56a09a01de63381f665`; local fork modifications remain under provenance review. |
+| Whirlpool implementation | `crypto/x16rv3/whirlpool/**` | 3-clause BSD, Copyright 2012 Jimmy Zelinskie. Exact upstream text is preserved in `crypto/x16rv3/whirlpool/LICENSE` and `LICENSES/BSD-3-Clause-Whirlpool.txt`, matched to `jzelinskie/whirlpool` commit `0675e54bb004a465b226b483b0d67d445fb27baa`; local fork modifications remain under provenance review. |
+| BIP39 | `crypto/bip39/**` | MIT, Tyler Smith and contributors. Preserved text: `LICENSES/MIT-bip39.txt`. |
+| terminal helper | `log/term/**` | MIT, Simon Eskildsen. Preserved text: `LICENSES/MIT-terminal.txt`. |
+| logging helper | `log/**` | Apache-2.0, Alan Shreve. Preserved text: `LICENSES/Apache-2.0-log.txt` and canonical text `LICENSES/Apache-2.0.txt`. |
+| Cuckaroom | `crypto/cuckoo/**` | Apache-2.0 header naming BlockCypher. See `crypto/cuckoo/cuckaroom.go` and `LICENSES/Apache-2.0.txt`. |
+| BlockDAG crypto fork | `common/hash/**`, module `github.com/BlockdagNetworkLabs/crypto` at `aa4cf9dc20f8` | Module cache supplies Go Authors BSD text. Preserve module `LICENSE`; exact fork provenance remains under review. |
+| CryptoNight fork | `deps/cryptonight/**` | Equim MIT license preserved in `deps/cryptonight/LICENSE`. JH and Grøstl are replaced with independently authored MIT-licensed sphlib implementations; original notices and license are retained under `deps/cryptonight/{jh,groestl}/` and provenance is in `deps/cryptonight/NOTICE-BDAG`. |
+
+The local `common/util/hexutil` duplicate was retired. Runtime users now use
+the existing vendored go-ethereum `common/hexutil` package, preserving its
+inherited LGPL terms.

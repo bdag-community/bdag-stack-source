@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mining Template Latency Instrumentation Plan</title>
+  <style>
+    :root {
+      color-scheme: dark light;
+      --bg: #0f1419;
+      --panel: #17212b;
+      --text: #eef6f9;
+      --muted: #a8b7c2;
+      --line: #2c3f4b;
+      --accent: #5eead4;
+      --focus: #93c5fd;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.55 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    main { max-width: 1120px; margin: 0 auto; padding: 32px 20px 48px; }
+    h1, h2, h3 { margin: 0 0 12px; line-height: 1.15; }
+    h1 { font-size: clamp(28px, 4vw, 42px); }
+    h2 { margin-top: 30px; font-size: 22px; }
+    p, li { color: var(--muted); }
+    code { color: #d8b4fe; }
+    .hero, .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 14px;
+    }
+    .pill {
+      display: inline-block;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 4px 10px;
+      margin: 5px 6px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .metric {
+      border-left: 4px solid var(--accent);
+      padding-left: 12px;
+    }
+    .metric strong { color: var(--text); display: block; }
+  </style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>Mining Template Latency Instrumentation</h1>
+    <p>
+      This branch adds passive timing around the mining-template hot path so later
+      performance work is driven by evidence instead of guesswork. It does not change
+      block contents, parent selection, state-root calculation, submit behavior, or
+      live service configuration.
+    </p>
+    <span class="pill">Repo: blockdag-corechain</span>
+    <span class="pill">Branch: feature/corechain-template-build-latency</span>
+    <span class="pill">Risk: read-only source behavior</span>
+    <span class="pill">Live action: none</span>
+  </section>
+
+  <h2>Why This Comes First</h2>
+  <div class="grid">
+    <article class="card">
+      <h3>Template Build Is Consensus Adjacent</h3>
+      <p>
+        State roots, merkle roots, parent sets, and template validation are expensive
+        places to optimize blindly. Timing the existing path lets us identify the slow
+        stage before touching logic.
+      </p>
+    </article>
+    <article class="card">
+      <h3>ASIC Hash Power Is Time Sensitive</h3>
+      <p>
+        The chain produces blocks roughly every second. Every avoidable template delay
+        reduces the useful lifetime of work distributed to miners.
+      </p>
+    </article>
+    <article class="card">
+      <h3>Safe For Review</h3>
+      <p>
+        Low-cardinality timers are easy for Ben to review and give us a stable baseline
+        before state-root or GBT allocation changes.
+      </p>
+    </article>
+  </div>
+
+  <h2>Signals Added</h2>
+  <div class="grid">
+    <div class="card metric"><strong>BdagPool reset/update</strong><code>bdagpool/templateUpdateDuration</code>, <code>bdagpool/templateCommitDuration</code></div>
+    <div class="card metric"><strong>DAG template total</strong><code>mining/templateBuildTotalDuration</code></div>
+    <div class="card metric"><strong>EVM pending snapshot</strong><code>mining/templatePendingDuration</code></div>
+    <div class="card metric"><strong>Merkle roots</strong><code>mining/templateMerkleDuration</code></div>
+    <div class="card metric"><strong>State root</strong><code>mining/templateStateRootDuration</code></div>
+    <div class="card metric"><strong>Template validation</strong><code>mining/templateCheckConnectDuration</code></div>
+    <div class="card metric"><strong>GBT result conversion</strong><code>mining/gbtResultDuration</code></div>
+    <div class="card metric"><strong>Miner pending reset</strong><code>mining/bdagPoolResetDuration</code></div>
+  </div>
+
+  <h2>Acceptance Criteria</h2>
+  <ul>
+    <li>All new signals are passive timers or gauges with fixed names and no per-wallet, per-IP, or per-template labels.</li>
+    <li>No consensus output changes: block header, parents, state root, tx root, timestamp, and difficulty logic are unchanged.</li>
+    <li>Instrumentation compiles with existing metrics infrastructure and does not require live service changes.</li>
+    <li>Focused package tests pass for miner, mining, BdagPool, nodeworker, and RPC client command packages.</li>
+  </ul>
+
+  <h2>Validation</h2>
+  <ul>
+    <li><code>go test ./services/mining ./services/miner ./bevm/bdag -run '^$' -count=1</code></li>
+    <li><code>go test ./bevm/bdag ./services/miner ./services/mining ./cmd/nodeworker ./rpc/client/cmds -count=1</code></li>
+    <li><code>git diff --check HEAD</code></li>
+  </ul>
+</main>
+<script type="application/json" id="agent-metadata">
+{
+  "document_type": "sdlc_design",
+  "component": "corechain",
+  "branch": "feature/corechain-template-build-latency",
+  "risk": "read-only-source-behavior",
+  "live_services_touched": false,
+  "backlog_item": "PVTI_lADODbdoIs4BXjCZzgsmpPk",
+  "target_files": [
+    "services/mining/newblocktemplate.go",
+    "services/mining/metrics.go",
+    "services/miner/metrics.go",
+    "services/miner/miner.go",
+    "services/miner/gbtworker.go",
+    "bevm/bdag/bdagpool.go",
+    "bevm/bdag/metrics.go"
+  ]
+}
+</script>
+</body>
+</html>

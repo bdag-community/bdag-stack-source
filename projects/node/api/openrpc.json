@@ -1,0 +1,182 @@
+{
+  "openrpc": "1.3.2",
+  "info": {
+    "title": "BlockDAG Corechain Public RPC",
+    "version": "1.2.0",
+    "description": "Stable public methods used by independently released nodes, pools, dashboards, and operator tooling. Implementations may expose additional methods; consumers must discover compatibility with getCapabilities."
+  },
+  "servers": [
+    {"name": "http", "url": "http://127.0.0.1:8131", "protocol": "http"},
+    {"name": "websocket", "url": "ws://127.0.0.1:8132", "protocol": "ws"}
+  ],
+  "methods": [
+    {
+      "name": "getCapabilities",
+      "summary": "Advertise component and API compatibility without requiring sync completion.",
+      "params": [],
+      "result": {"name": "capabilities", "schema": {"$ref": "#/components/schemas/ComponentCapabilitiesResult"}}
+    },
+    {
+      "name": "getChainIdentity",
+      "summary": "Return immutable native and embedded EVM chain identity without requiring sync completion.",
+      "params": [],
+      "result": {"name": "identity", "schema": {"$ref": "#/components/schemas/ChainIdentityResult"}}
+    },
+    {
+      "name": "getBlockCount",
+      "params": [],
+      "result": {"name": "height", "schema": {"type": "integer"}}
+    },
+    {
+      "name": "getTemplateHealth",
+      "params": [],
+      "result": {"name": "health", "schema": {"$ref": "#/components/schemas/MiningTemplateHealthResult"}}
+    },
+    {
+      "name": "getBlockTemplate",
+      "params": [{"name": "request", "required": false, "schema": {"type": "object"}}],
+      "result": {"name": "template", "schema": {"type": "object"}}
+    },
+    {
+      "name": "submitBlockHeaderV2",
+      "summary": "Submit an immutable candidate and distinguish final acceptance or rejection from pending and retryable dispositions.",
+      "params": [{"name": "hexBlockHeader", "required": true, "schema": {"type": "string", "minLength": 1}}],
+      "result": {"name": "submission", "schema": {"$ref": "#/components/schemas/SubmitBlockResult"}}
+    }
+  ],
+  "components": {
+    "schemas": {
+      "ComponentAPICapability": {
+        "type": "object",
+        "required": ["current", "supported_majors", "transports", "contract"],
+        "properties": {
+          "current": {"type": "string"},
+          "supported_majors": {"type": "array", "minItems": 1, "items": {"type": "integer", "minimum": 1}},
+          "transports": {"type": "array", "minItems": 1, "items": {"type": "string"}},
+          "contract": {"type": "string"}
+        }
+      },
+      "ComponentCapabilitiesResult": {
+        "type": "object",
+        "required": ["schema", "component", "component_version", "apis"],
+        "properties": {
+          "schema": {"const": "bdag.component-capabilities.v1"},
+          "component": {"const": "corechain"},
+          "component_version": {"type": "string", "minLength": 1},
+          "source_commit": {"type": "string", "pattern": "^[0-9a-f]{40}$"},
+          "apis": {
+            "type": "object",
+            "required": ["corechain.native", "corechain.evm"],
+            "additionalProperties": {"$ref": "#/components/schemas/ComponentAPICapability"}
+          }
+        }
+      },
+      "ChainIdentityResult": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "schema",
+          "network",
+          "native_network_magic",
+          "native_genesis_hash",
+          "evm_chain_id",
+          "evm_genesis_hash"
+        ],
+        "properties": {
+          "schema": {"const": "bdag.chain-identity.v1"},
+          "network": {"enum": ["mainnet", "mainnet-isolated", "testnet", "privnet", "mixnet", "devnet"]},
+          "native_network_magic": {"type": "string", "pattern": "^0x[0-9a-f]{8}$"},
+          "native_genesis_hash": {"type": "string", "pattern": "^0x[0-9a-f]{64}$"},
+          "evm_chain_id": {"type": "string", "pattern": "^(0|[1-9][0-9]*)$"},
+          "evm_genesis_hash": {"type": "string", "pattern": "^0x[0-9a-f]{64}$"}
+        }
+      },
+      "MiningTemplateHealthResult": {
+        "type": "object",
+        "required": [
+          "checked_at_unix_ms",
+          "reason_code",
+          "mineable_now",
+          "submit_ready",
+          "get_block_template_ready",
+          "template_available",
+          "template_usable",
+          "p2p_current",
+          "p2p_mining_fresh",
+          "chain_current",
+          "template_backend_syncing",
+          "canonical_mining_backend_ready",
+          "canonical_mining_bypass_active"
+        ],
+        "properties": {
+          "checked_at_unix_ms": {"type": "integer"},
+          "reason_code": {"type": "string"},
+          "mineable_now": {"type": "boolean"},
+          "submit_ready": {"type": "boolean"},
+          "get_block_template_ready": {"type": "boolean"},
+          "template_available": {"type": "boolean"},
+          "template_usable": {"type": "boolean"},
+          "p2p_current": {"type": "boolean"},
+          "p2p_mining_fresh": {"type": "boolean"},
+          "chain_current": {"type": "boolean"},
+          "template_backend_syncing": {"type": "boolean"},
+          "canonical_mining_backend_ready": {"type": "boolean"},
+          "canonical_mining_bypass_active": {"type": "boolean"}
+        }
+      },
+      "SubmitBlockResult": {
+        "type": "object",
+        "required": [
+          "accepted",
+          "final",
+          "retryable",
+          "code",
+          "block_hash",
+          "coinbase_txid",
+          "order",
+          "height",
+          "coinbase_amount",
+          "miner_type"
+        ],
+        "properties": {
+          "accepted": {"type": "boolean"},
+          "final": {"type": "boolean"},
+          "retryable": {"type": "boolean"},
+          "code": {
+            "type": "string",
+            "enum": [
+              "accepted",
+              "already_accepted",
+              "already_rejected",
+              "queued",
+              "retryable",
+              "duplicate",
+              "already_known",
+              "stale_parent",
+              "tip_overdue",
+              "expired",
+              "template_seq_unknown",
+              "invalid_pow",
+              "txroot_mismatch",
+              "missing_trie",
+              "nonce_too_low",
+              "node_syncing",
+              "p2p_not_current",
+              "miner_disabled",
+              "governance_rejected",
+              "internal_error"
+            ]
+          },
+          "message": {"type": "string"},
+          "block_hash": {"type": "string"},
+          "coinbase_txid": {"type": "string"},
+          "order": {"type": "string"},
+          "height": {"type": "integer"},
+          "coinbase_amount": {"type": "integer", "minimum": 0},
+          "miner_type": {"type": "string"},
+          "template_seq": {"type": "integer", "minimum": 0}
+        }
+      }
+    }
+  }
+}

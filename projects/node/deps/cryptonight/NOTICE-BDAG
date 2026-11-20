@@ -1,0 +1,12 @@
+This CryptoNight module is based on Equim-chan/cryptonight at
+ca7522515170f26ccb3de2c0ebf5e59d01f9a07b and its BlockdagNetworkLabs fork
+at aa4cf9dc20f8; the original module MIT license is retained in LICENSE.
+The jh and groestl implementations have been replaced by the independently
+authored sphlib implementations by Thomas Pornin, Projet RNRT SAPHIR, at
+https://github.com/pornin/sphlib/tree/15b6b8d8f3e4a43c58ba102d712fa6b8a3317035/c.
+Their MIT licenses and original notices are retained in the relevant files
+and LICENSE.sphlib. The Go interfaces in jh/hash.go and groestl/hash.go are
+new BlockDAG community work provided under GPL-3.0-or-later.
+The C compiler is required to build these two packages.
+The internal/aes and internal/sha3 packages include Go Authors code under
+the BSD-3-Clause license, reproduced in each package directory.
