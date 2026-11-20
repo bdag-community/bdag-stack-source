@@ -501,7 +501,7 @@ func (b *BdagChain) IsNativeValidEVMBlock(hash common.Hash, number uint64, root 
 	return true, true
 }
 
-func NewBdagChain(consensus model.Consensus) (*BdagChain, error) {
+func NewBdagChain(consensus model.Consensus, proof ...*core.MainnetDAOAdoptionProof) (*BdagChain, error) {
 	log.Info("bdag chain", "version", Version)
 	cfg := consensus.Config()
 	eth.InitLog(cfg.DebugLevel, cfg.DebugPrintOrigins)
@@ -510,6 +510,9 @@ func NewBdagChain(consensus model.Consensus) (*BdagChain, error) {
 	if err != nil {
 		log.Error(err.Error())
 		return nil, err
+	}
+	if len(proof) > 0 {
+		ecfg.Eth.MainnetDAOAdoptionProof = proof[0]
 	}
 	chain, err := eth.NewETHChain(ecfg, args)
 	if err != nil {

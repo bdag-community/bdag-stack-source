@@ -234,9 +234,19 @@ func (e *GenesisMismatchError) Error() string {
 }
 
 // ChainOverrides contains the changes to chain config.
+// MainnetDAOAdoptionProof ties a pre-activation native tip to the existing EVM head.
+// It is supplied by the native database integration, never by a runtime flag.
+type MainnetDAOAdoptionProof struct {
+	NativeLayer uint64
+	EVMHash     common.Hash
+	EVMRoot     common.Hash
+	EVMNumber   uint64
+}
+
 type ChainOverrides struct {
-	OverrideCancun *uint64
-	OverrideVerkle *uint64
+	OverrideCancun          *uint64
+	OverrideVerkle          *uint64
+	MainnetDAOAdoptionProof *MainnetDAOAdoptionProof
 }
 
 // SetupGenesisBlock writes or updates the genesis block in db.

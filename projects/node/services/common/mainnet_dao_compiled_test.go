@@ -14,7 +14,7 @@ func TestCompiledMainnetDAORelease(t *testing.T) {
 	previous := upgrades.ReplaceUpgrades(map[string]*upgrades.UpgradeDefinition{})
 	t.Cleanup(func() { chainparams.ActiveNetParams = previousNet; upgrades.ReplaceUpgrades(previous) })
 	require.NotNil(t, evmparams.BdagMainnetDAO)
-	require.EqualValues(t, 22419500, evmparams.BdagMainnetDAO.SignalStartLayer)
+	require.EqualValues(t, 22420569, evmparams.BdagMainnetDAO.SignalStartLayer)
 	require.NoError(t, evmconsensus.ValidateCompiledMainnetDAOArtifacts())
 	require.Nil(t, evmparams.BdagTestnetChainConfig.BdagMainnetDAO)
 	require.Nil(t, evmparams.BdagDevnetChainConfig.BdagMainnetDAO)

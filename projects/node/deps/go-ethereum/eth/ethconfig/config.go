@@ -71,11 +71,11 @@ var Defaults = Config{
 
 type CreateConsensusEngine func(*params.ChainConfig, ethdb.Database) (consensus.Engine, error)
 
-
 //go:generate go run github.com/fjl/gencodec -type Config -formats toml -out gen_config.go
 
 // Config contains configuration options for ETH and LES protocols.
 type Config struct {
+	MainnetDAOAdoptionProof *core.MainnetDAOAdoptionProof `toml:"-"`
 	// The genesis block, which is inserted if the database is empty.
 	// If nil, the Ethereum main net block is used.
 	Genesis *core.Genesis `toml:",omitempty"`

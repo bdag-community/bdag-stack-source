@@ -1306,7 +1306,7 @@ func New(consensus model.Consensus) (*BlockChain, error) {
 	b.InitServices()
 	b.Services().RegisterService(b.bd)
 
-	mchain, err := bdag.NewBdagChain(consensus)
+	mchain, err := bdag.NewBdagChain(consensus, b.mainnetDAOAdoptionProof())
 	if err != nil {
 		return nil, err
 	}

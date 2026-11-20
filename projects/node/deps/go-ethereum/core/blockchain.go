@@ -299,6 +299,24 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, genesis *Genesis
 	// to database if the genesis block is not present yet, or load the
 	// stored one from database.
 	chainConfig, genesisHash, genesisErr := SetupGenesisBlockWithOverride(db, triedb, genesis, overrides)
+	if compat, ok := genesisErr.(*params.ConfigCompatError); ok && compat.What == params.MainnetDAOConfigConflict && overrides != nil && overrides.MainnetDAOAdoptionProof != nil {
+		proof := overrides.MainnetDAOAdoptionProof
+		old := rawdb.ReadChainConfig(db, genesisHash)
+		head := rawdb.ReadHeadHeader(db)
+		if old != nil && old.BdagMainnetDAO == nil && chainConfig != nil && chainConfig.BdagMainnetDAO != nil &&
+			chainConfig.BdagMainnetDAO.Validate(chainConfig.ChainID) == nil && head != nil && head.Number != nil && head.Number.IsUint64() &&
+			proof.NativeLayer < chainConfig.BdagMainnetDAO.SignalStartLayer+99999+chainConfig.BdagMainnetDAO.ActivationDelayLayers &&
+			proof.EVMHash != (common.Hash{}) && proof.EVMHash == head.Hash() && proof.EVMHash == rawdb.ReadHeadBlockHash(db) &&
+			proof.EVMNumber == head.Number.Uint64() && proof.EVMRoot == head.Root {
+			candidate := *old
+			candidate.BdagMainnetDAO = chainConfig.BdagMainnetDAO
+			if candidate.CheckCompatible(chainConfig, head.Number.Uint64(), head.Time) == nil {
+				rawdb.WriteChainConfig(db, genesisHash, chainConfig)
+				genesisErr = nil
+				log.Info("Adopted Mainnet DAO profile on verified pre-activation paired history", "nativeLayer", proof.NativeLayer, "evmNumber", proof.EVMNumber)
+			}
+		}
+	}
 	if compat, ok := genesisErr.(*params.ConfigCompatError); ok && compat.What == params.MainnetDAOConfigConflict {
 		// Native/EVM metadata form a paired history. Generic geth SetHead cannot
 		// safely repair a late or changed native migration manifest and must not

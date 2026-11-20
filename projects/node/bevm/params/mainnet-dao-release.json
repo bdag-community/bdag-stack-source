@@ -1,9 +1,9 @@
 {
   "version": 1,
   "artifactSha256": "0xd64f893f7d1eae52b369d59d434f7c5f6745794fb0610a7d71456022d38aa33f",
-  "signalStartLayer": 22419500,
+  "signalStartLayer": 22420569,
   "activationDelayLayers": 2000,
-  "earliestEvmBlock": 29421225,
+  "earliestEvmBlock": 29422976,
   "releaseDistributedAt": 0,
   "noticePublishedAt": 0,
   "notBeforeTimestamp": 0,

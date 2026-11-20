@@ -19,7 +19,7 @@
       "excluded": [],
       "note": "Mainnet DAO and Staking V2 release profile sealed; JH and Groestl use MIT-licensed sphlib",
       "prior_live_source_commit": "4e1c022e57eb0cb690fcd0908a8df715b854f8c9",
-      "source_commit": "3ca25e9d4884cce59336ad3c9e3427ddb762a7ab"
+      "source_commit": "062e5fe82aae2de491e6482ad895445d6415b8b3"
     },
     "node-dashboard": {
       "excluded": [

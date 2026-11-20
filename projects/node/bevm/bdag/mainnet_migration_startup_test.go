@@ -57,3 +57,56 @@ func TestMainnetDAOStartupNeverSilentlyRewindsPairedHistory(t *testing.T) {
 		})
 	}
 }
+
+func TestMainnetDAOLateAdoptionRequiresExactPreActivationPair(t *testing.T) {
+	for _, name := range []string{"valid pair", "different EVM hash", "different EVM root", "different EVM number", "at native anchor", "missing proof"} {
+		t.Run(name, func(t *testing.T) {
+			config := *ethparams.AllEthashProtocolChanges
+			config.ChainID = big.NewInt(1404)
+			genesis := &ethcore.Genesis{Config: &config, GasLimit: 45_000_000}
+			db := rawdb.NewMemoryDatabase()
+			t.Cleanup(func() { db.Close() })
+			engine := ethash.NewFaker()
+			chain, err := ethcore.NewBlockChain(db, nil, genesis, nil, engine, vm.Config{}, nil)
+			require.NoError(t, err)
+			_, blocks, _ := ethcore.GenerateChainWithGenesis(genesis, engine, 5, nil)
+			_, err = chain.InsertChain(blocks)
+			require.NoError(t, err)
+			head := chain.CurrentBlock()
+			chain.Stop()
+			oldHead := rawdb.ReadHeadBlockHash(db)
+			oldConfig := rawdb.ReadChainConfig(db, genesis.ToBlock().Hash())
+			future := config
+			future.BdagMainnetDAO = &ethparams.BDAGMainnetDAOConfig{Version: 1, ArtifactSHA256: common.HexToHash("0x1234"), SignalStartLayer: 30000000, ActivationDelayLayers: 2000, EarliestEVMBlock: 2, LegacyGenesisTime: 1770760980}
+			next := *genesis
+			next.Config = &future
+			proof := &ethcore.MainnetDAOAdoptionProof{NativeLayer: 30000000, EVMHash: head.Hash(), EVMRoot: head.Root, EVMNumber: head.Number.Uint64()}
+			switch name {
+			case "different EVM hash":
+				proof.EVMHash = common.HexToHash("0x1234")
+			case "different EVM root":
+				proof.EVMRoot = common.HexToHash("0x1234")
+			case "different EVM number":
+				proof.EVMNumber++
+			case "at native anchor":
+				proof.NativeLayer = 30000000 + 99999 + 2000
+			case "missing proof":
+				proof = nil
+			}
+			opened, err := ethcore.NewBlockChain(db, nil, &next, &ethcore.ChainOverrides{MainnetDAOAdoptionProof: proof}, engine, vm.Config{}, nil)
+			if opened != nil {
+				t.Cleanup(opened.Stop)
+			}
+			if name == "valid pair" {
+				require.NoError(t, err)
+				require.NotNil(t, opened)
+				require.Equal(t, future.BdagMainnetDAO, rawdb.ReadChainConfig(db, genesis.ToBlock().Hash()).BdagMainnetDAO)
+			} else {
+				require.ErrorContains(t, err, "automatic rewind is disabled")
+				require.Nil(t, opened)
+				require.Equal(t, oldConfig, rawdb.ReadChainConfig(db, genesis.ToBlock().Hash()))
+			}
+			require.Equal(t, oldHead, rawdb.ReadHeadBlockHash(db))
+		})
+	}
+}
