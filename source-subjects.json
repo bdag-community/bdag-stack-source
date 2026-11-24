@@ -11,7 +11,7 @@
     },
     "node": {
       "excluded": [],
-      "note": "JH and Groestl replaced with MIT-licensed sphlib; unused unlicensed token removed",
+      "note": "JH and Groestl replaced with MIT-licensed sphlib; unused unlicensed token removed. source_commit identifies the imported node baseline; subsequent node changes are tracked in this repository history.",
       "prior_live_source_commit": "4e1c022e57eb0cb690fcd0908a8df715b854f8c9",
       "source_commit": "2cc70ffd84eb45a716862b28f95f6fa4b6add632"
     },

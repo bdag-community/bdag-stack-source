@@ -39,7 +39,7 @@ type upgradeWindowCache struct {
 
 // upgradeRebuildStateVersion is bumped when the persisted rebuild marker no
 // longer proves that the current tally algorithm has scanned historical votes.
-const upgradeRebuildStateVersion uint64 = 2
+const upgradeRebuildStateVersion uint64 = 3
 
 // finalUpgradeReconcileMaxParents bounds every final-state ancestry proof. A
 // proof failure deliberately falls back to the historical rebuild.
@@ -51,6 +51,8 @@ type upgradeRebuildState struct {
 	TipLayer        uint64
 	TipHash         ethcommon.Hash
 	DefinitionsHash ethcommon.Hash
+	ResultsHash     ethcommon.Hash `rlp:"optional"`
+	TipHeight       uint64         `rlp:"optional"`
 }
 
 type upgradeRebuildDefinition struct {
@@ -290,7 +292,7 @@ func (b *BlockChain) upgradeMainParent(block blockdag.IBlock, steps *uint64) (bl
 	return parent, true
 }
 
-func (b *BlockChain) upgradeMarkerTipIsAncestor(marker upgradeRebuildState, tip blockdag.IBlock, steps *uint64) bool {
+func upgradeMarkerIsAncestor(marker upgradeRebuildState, tip blockdag.IBlock, parent func(blockdag.IBlock) (blockdag.IBlock, bool)) bool {
 	for current := tip; current != nil; {
 		if uint64(current.GetID()) == marker.TipID {
 			return upgradeRebuildTipMatches(current, marker)
@@ -298,7 +300,7 @@ func (b *BlockChain) upgradeMarkerTipIsAncestor(marker upgradeRebuildState, tip 
 		if uint64(current.GetLayer()) < marker.TipLayer {
 			return false
 		}
-		next, ok := b.upgradeMainParent(current, steps)
+		next, ok := parent(current)
 		if !ok {
 			return false
 		}
@@ -310,7 +312,7 @@ func (b *BlockChain) upgradeMarkerTipIsAncestor(marker upgradeRebuildState, tip 
 // selectedParentReorgChangedFrom returns the first changed suffix layer. Both
 // legs share one bounded traversal budget so malformed ancestry cannot turn a
 // final-state shortcut into an unbounded walk.
-func (b *BlockChain) selectedParentReorgChangedFrom(previous, current blockdag.IBlock, steps *uint64) (uint64, bool) {
+func selectedParentReorgChangedFrom(previous, current blockdag.IBlock, parent func(blockdag.IBlock) (blockdag.IBlock, bool)) (uint64, bool) {
 	if previous == nil || current == nil {
 		return 0, false
 	}
@@ -326,7 +328,7 @@ func (b *BlockChain) selectedParentReorgChangedFrom(previous, current blockdag.I
 	for previous.GetHeight() > current.GetHeight() {
 		record(previous)
 		var ok bool
-		previous, ok = b.upgradeMainParent(previous, steps)
+		previous, ok = parent(previous)
 		if !ok {
 			return 0, false
 		}
@@ -334,7 +336,7 @@ func (b *BlockChain) selectedParentReorgChangedFrom(previous, current blockdag.I
 	for current.GetHeight() > previous.GetHeight() {
 		record(current)
 		var ok bool
-		current, ok = b.upgradeMainParent(current, steps)
+		current, ok = parent(current)
 		if !ok {
 			return 0, false
 		}
@@ -343,82 +345,16 @@ func (b *BlockChain) selectedParentReorgChangedFrom(previous, current blockdag.I
 		record(previous)
 		record(current)
 		var ok bool
-		previous, ok = b.upgradeMainParent(previous, steps)
+		previous, ok = parent(previous)
 		if !ok {
 			return 0, false
 		}
-		current, ok = b.upgradeMainParent(current, steps)
+		current, ok = parent(current)
 		if !ok {
 			return 0, false
 		}
 	}
 	return changed, changed != math.MaxUint64
-}
-
-// tryRefreshFinalUpgradeRebuildState is a narrow v2-marker fast path.
-// It does not change upgrade state: it proves all state is already final, then
-// advances only the existing marker. Any uncertainty returns false for the
-// unchanged full historical rebuild.
-func (b *BlockChain) tryRefreshFinalUpgradeRebuildState(previousTip blockdag.IBlock) bool {
-	b.upgradeRebuildMu.Lock()
-	defer b.upgradeRebuildMu.Unlock()
-	return b.tryRefreshFinalUpgradeRebuildStateHeld(previousTip)
-}
-
-func (b *BlockChain) tryRefreshFinalUpgradeRebuildStateHeld(previousTip blockdag.IBlock) bool {
-	currentTip := b.bd.GetMainChainTip()
-	if currentTip == nil {
-		return false
-	}
-	marker, found, err := b.loadUpgradeRebuildState()
-	if err != nil || !found || marker.Version != upgradeRebuildStateVersion || marker.DefinitionsHash != upgradeDefinitionsHash() {
-		return false
-	}
-	definitions := currentUpgradeRebuildDefinitions()
-	steps := uint64(0)
-	if previousTip != nil {
-		changedFrom, ok := b.selectedParentReorgChangedFrom(previousTip, currentTip, &steps)
-		if !ok || !b.upgradeMarkerTipIsAncestor(*marker, previousTip, &steps) {
-			return false
-		}
-		for _, def := range definitions {
-			state, exists, loadErr := b.loadPersistedUpgradeState(def.Name)
-			if loadErr != nil || !exists || !state.Active || !state.LockedIn || !state.AnchorSet || (changedFrom != 0 && changedFrom <= state.ThresholdAt) {
-				return false
-			}
-		}
-	} else if !b.upgradeMarkerTipIsAncestor(*marker, currentTip, &steps) {
-		return false
-	}
-	storedResults := make([]upgradeRebuildResult, 0, len(definitions))
-	for _, def := range definitions {
-		state, exists, loadErr := b.loadPersistedUpgradeState(def.Name)
-		if loadErr != nil || !exists || !state.Active || !state.LockedIn || !state.AnchorSet {
-			return false
-		}
-		storedCompleted := upgradeCompletedVotingWindows(marker.TipLayer, def)
-		expectedCompleted := upgradeCompletedVotingWindows(uint64(currentTip.GetLayer()), def)
-		if expectedCompleted < storedCompleted {
-			return false
-		}
-		atStored, validateErr := upgradeForwardBaseResult(state, def, storedCompleted, storedCompleted, marker.TipLayer)
-		atCurrent, currentErr := upgradeForwardBaseResult(state, def, storedCompleted, expectedCompleted, uint64(currentTip.GetLayer()))
-		persisted := upgradeResultFromState(def.Name, state)
-		if validateErr != nil || currentErr != nil || !atStored.Active || !atCurrent.Active || atStored != persisted || atCurrent != persisted {
-			return false
-		}
-		storedResults = append(storedResults, persisted)
-	}
-	currentResults, currentErr := currentUpgradeRebuildResults(definitions)
-	if currentErr != nil || !upgradeRebuildResultsEqual(storedResults, currentResults) {
-		return false
-	}
-	if err := b.persistUpgradeRebuildState(b.newUpgradeRebuildState(currentTip)); err != nil {
-		return false
-	}
-	b.resetUpgradeCache()
-	l.Info("upgrade rebuild final-state marker refreshed", "tip_id", currentTip.GetID(), "tip_layer", currentTip.GetLayer(), "upgrades", len(definitions))
-	return true
 }
 
 func (b *BlockChain) persistUpgradeRebuildState(st upgradeRebuildState) error {
@@ -448,51 +384,6 @@ func (b *BlockChain) loadUpgradeRebuildState() (*upgradeRebuildState, bool, erro
 	return &st, true, nil
 }
 
-func (b *BlockChain) hasValidUpgradeRebuildState(expected upgradeRebuildState) (bool, error) {
-	st, found, err := b.loadUpgradeRebuildState()
-	if err != nil {
-		return false, err
-	}
-	if !found {
-		return false, nil
-	}
-	if !upgradeRebuildStateMatches(*st, expected) {
-		l.Info("upgrade rebuild marker does not match current chain or definitions",
-			"stored_tip_id", st.TipID,
-			"stored_tip_layer", st.TipLayer,
-			"expected_tip_id", expected.TipID,
-			"expected_tip_layer", expected.TipLayer,
-			"stored_checkpoint", upgradeRebuildCheckpoint(st.TipLayer, currentUpgradeRebuildDefinitions()),
-			"expected_checkpoint", upgradeRebuildCheckpoint(expected.TipLayer, currentUpgradeRebuildDefinitions()),
-		)
-		return false, nil
-	}
-	ok, err := b.hasPersistedStateForAllUpgrades()
-	if err != nil || !ok {
-		return false, err
-	}
-	return true, nil
-}
-
-func (b *BlockChain) hasPersistedStateForAllUpgrades() (bool, error) {
-	definitions := currentUpgradeRebuildDefinitions()
-	for _, def := range definitions {
-		data, err := b.DB().Get(rawdb.UpgradeStateKey(def.Name))
-		if err != nil {
-			if isUpgradeStateNotFound(err) {
-				l.Info("upgrade rebuild marker ignored because upgrade state is missing", "name", def.Name)
-				return false, nil
-			}
-			return false, err
-		}
-		if len(data) == 0 {
-			l.Info("upgrade rebuild marker ignored because upgrade state is empty", "name", def.Name)
-			return false, nil
-		}
-	}
-	return true, nil
-}
-
 func (b *BlockChain) newUpgradeRebuildState(tip blockdag.IBlock) upgradeRebuildState {
 	tipHash := ethcommon.Hash{}
 	if tip != nil && tip.GetHash() != nil {
@@ -502,16 +393,15 @@ func (b *BlockChain) newUpgradeRebuildState(tip blockdag.IBlock) upgradeRebuildS
 		Version:         upgradeRebuildStateVersion,
 		TipID:           uint64(tip.GetID()),
 		TipLayer:        uint64(tip.GetLayer()),
+		TipHeight:       uint64(tip.GetHeight()),
 		TipHash:         tipHash,
 		DefinitionsHash: upgradeDefinitionsHash(),
 	}
 }
 
+// Matching window counters alone cannot establish selected-parent ancestry.
 func upgradeRebuildStateMatches(st, expected upgradeRebuildState) bool {
-	if st.Version != expected.Version || st.DefinitionsHash != expected.DefinitionsHash {
-		return false
-	}
-	return upgradeRebuildCheckpointMatches(st.TipLayer, expected.TipLayer, currentUpgradeRebuildDefinitions())
+	return st == expected
 }
 
 func upgradeRebuildCheckpointMatches(storedLayer, expectedLayer uint64, definitions []upgradeRebuildDefinition) bool {
@@ -572,150 +462,60 @@ func upgradeDefinitionsHash() ethcommon.Hash {
 	return ethcommon.BytesToHash(h.Sum(nil))
 }
 
-// MaybeRebuildUpgradesFromHeaders avoids a full historical scan when the
-// database already has upgrade state rebuilt for the current complete
-// voting-window checkpoint and current static upgrade definitions.
-func (b *BlockChain) MaybeRebuildUpgradesFromHeaders() {
-	b.upgradeRebuildMu.Lock()
-	defer b.upgradeRebuildMu.Unlock()
-
-	tip := b.bd.GetMainChainTip()
-	if tip == nil {
-		return
-	}
-
-	expected := b.newUpgradeRebuildState(tip)
-	if ok, err := b.hasValidUpgradeRebuildState(expected); err != nil {
-		l.Warn("failed to validate upgrade rebuild state", "err", err)
-	} else if ok {
-		l.Info("upgrade rebuild skipped; persisted state covers current voting checkpoint", "tip_id", expected.TipID, "tip_layer", expected.TipLayer)
-		b.resetUpgradeCache()
-		return
-	}
-	if b.tryRefreshFinalUpgradeRebuildStateHeld(nil) {
-		return
-	}
-
-	b.rebuildUpgradesFromHeadersLocked()
+// MaybeRebuildUpgradesFromHeaders validates the persisted checkpoint on startup.
+func (b *BlockChain) MaybeRebuildUpgradesFromHeaders() error {
+	b.ChainLock()
+	defer b.ChainUnlock()
+	return b.reconcileUpgradesHeld("startup", nil, false)
 }
 
-// RebuildUpgradesFromHeadersIfNeeded performs a full header rebuild only once
-// the current tip can affect at least one configured voting window. Reorgs
-// before the first upgrade start layer cannot change upgrade state because
-// evaluateUpgrades clears per-upgrade windows until the start layer is reached.
+// RebuildUpgradesFromHeadersIfNeeded reconciles the selected-parent state after sync.
 func (b *BlockChain) RebuildUpgradesFromHeadersIfNeeded(reason string) {
-	b.upgradeRebuildMu.Lock()
-	defer b.upgradeRebuildMu.Unlock()
-
-	tip := b.bd.GetMainChainTip()
-	if tip == nil {
-		return
+	b.ChainLock()
+	defer b.ChainUnlock()
+	if err := b.reconcileUpgradesHeld(reason, nil, false); err != nil {
+		l.Error("upgrade reconciliation failed", "reason", reason, "err", err)
 	}
-
-	definitions := currentUpgradeRebuildDefinitions()
-	tipLayer := uint64(tip.GetLayer())
-	if !upgradeRebuildNeededAtLayer(tipLayer, definitions) {
-		if nextStart, ok := nextUpgradeRebuildStartLayer(definitions); ok {
-			l.Debug("upgrade rebuild skipped; tip before first upgrade voting layer",
-				"reason", reason,
-				"tip_id", tip.GetID(),
-				"tip_layer", tipLayer,
-				"next_start_layer", nextStart,
-				"upgrades", len(definitions),
-			)
-		} else {
-			l.Debug("upgrade rebuild skipped; no upgrade voting windows configured",
-				"reason", reason,
-				"tip_id", tip.GetID(),
-				"tip_layer", tipLayer,
-			)
-		}
-		return
-	}
-
-	expected := b.newUpgradeRebuildState(tip)
-	if ok, err := b.hasValidUpgradeRebuildState(expected); err != nil {
-		l.Warn("failed to validate upgrade rebuild state", "reason", reason, "err", err)
-	} else if ok {
-		l.Debug("upgrade rebuild skipped; persisted state covers current voting checkpoint",
-			"reason", reason,
-			"tip_id", expected.TipID,
-			"tip_layer", expected.TipLayer,
-			"checkpoint", upgradeRebuildCheckpoint(expected.TipLayer, definitions),
-		)
-		b.resetUpgradeCache()
-		return
-	}
-	if b.tryRefreshFinalUpgradeRebuildStateHeld(nil) {
-		return
-	}
-
-	b.rebuildUpgradesFromHeadersLocked()
 }
 
-// RebuildUpgradesFromHeaders rescans historical main-chain headers to derive
-// the lock-in and activation status for all registered upgrades. It resets the
-// in-memory state prior to scanning to ensure the result reflects only
-// on-chain data.
+// RebuildUpgradesFromHeaders forces a complete selected-parent recount.
 func (b *BlockChain) RebuildUpgradesFromHeaders() {
-	b.upgradeRebuildMu.Lock()
-	defer b.upgradeRebuildMu.Unlock()
-
-	b.rebuildUpgradesFromHeadersLocked()
+	b.ChainLock()
+	defer b.ChainUnlock()
+	if err := b.reconcileUpgradesHeld("forced", nil, true); err != nil {
+		l.Error("upgrade rebuild failed", "err", err)
+	}
 }
 
-func (b *BlockChain) rebuildUpgradesFromHeadersLocked() {
+// reconcileUpgradesHeld keeps the chain stable through scanning and publication.
+// The chain lock is always acquired before upgradeRebuildMu.
+func (b *BlockChain) reconcileUpgradesHeld(reason string, previous blockdag.IBlock, force bool) (err error) {
+	b.upgradeRebuildMu.Lock()
+	defer b.upgradeRebuildMu.Unlock()
+	b.upgradeRebuildUnavailable.Store(true)
+	defer func() { b.upgradeRebuildUnavailable.Store(err != nil) }()
 	tip := b.bd.GetMainChainTip()
 	if tip == nil {
-		return
+		return fmt.Errorf("upgrade reconciliation has no selected-parent tip")
 	}
-
-	state := b.newUpgradeRebuildState(tip)
-	now := uint64(tip.GetLayer())
+	if !force {
+		var handled bool
+		handled, err = b.reconcileUpgradeCheckpoint(tip, previous, reason)
+		if err != nil || handled {
+			return err
+		}
+	}
 	definitions := currentUpgradeRebuildDefinitions()
-
-	l.Info("upgrade rebuild started", "tip_id", state.TipID, "tip_layer", state.TipLayer, "upgrades", len(definitions))
-
-	for _, def := range definitions {
-		upgrades.UpdateUpgrade(def.Name, func(u *upgrades.UpgradeDefinition) {
-			u.Active = false
-			u.LockedIn = false
-			u.AnchorSet = false
-			u.ActivateAnchor = 0
-			u.ThresholdAt = 0
-		})
+	l.Info("upgrade rebuild started", "reason", reason, "tip_id", tip.GetID(), "tip_layer", tip.GetLayer(), "upgrades", len(definitions))
+	results, complete := b.rebuildUpgradeResultsFromHeaders(tip, uint64(tip.GetLayer()), definitions)
+	if !complete {
+		return fmt.Errorf("incomplete upgrade header scan")
 	}
-
-	results, complete := b.rebuildUpgradeResultsFromHeaders(tip, now, definitions)
-
-	persistOK := true
-	for _, result := range results {
-		var snapshot upgrades.UpgradeDefinition
-		upgrades.UpdateUpgrade(result.Name, func(u *upgrades.UpgradeDefinition) {
-			u.Active = result.Active
-			u.LockedIn = result.LockedIn
-			u.AnchorSet = result.AnchorSet
-			u.ActivateAnchor = result.ActivateAnchor
-			u.ThresholdAt = result.ThresholdAt
-			snapshot = *u
-		})
-
-		if err := b.persistUpgradeState(result.Name, &snapshot); err != nil {
-			l.Warn("failed to persist rebuild upgrade state", "name", result.Name, "err", err)
-			persistOK = false
-		}
+	if err = b.commitUpgradeResults(b.newUpgradeRebuildState(tip), results); err != nil {
+		return fmt.Errorf("persist upgrade checkpoint: %w", err)
 	}
-
-	if complete && persistOK {
-		if err := b.persistUpgradeRebuildState(state); err != nil {
-			l.Warn("failed to persist upgrade rebuild marker", "err", err)
-		}
-	} else if !complete {
-		l.Warn("upgrade rebuild did not complete cleanly; rebuild marker was not updated")
-	}
-
-	b.resetUpgradeCache()
-	l.Info("upgrade rebuild finished", "tip_id", state.TipID, "tip_layer", state.TipLayer)
+	l.Info("upgrade rebuild finished", "reason", reason, "tip_id", tip.GetID(), "tip_layer", tip.GetLayer())
+	return nil
 }
 
 func currentUpgradeRebuildDefinitions() []upgradeRebuildDefinition {
@@ -792,9 +592,7 @@ func (b *BlockChain) rebuildUpgradeResultsFromHeaders(tip blockdag.IBlock, now u
 
 	l.Info("upgrade rebuild header scan started", "from_layer", minStart, "to_layer", now, "upgrades", relevantCount)
 
-	b.ChainRLock()
-	defer b.ChainRUnlock()
-
+	// The caller holds chainLock through the scan and publication.
 	started := time.Now()
 	lastLog := started
 	var processed uint64

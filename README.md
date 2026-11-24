@@ -1,9 +1,10 @@
 # BlockDAG community stack source
 
 Source for the BlockDAG community node, mining pool, payer, dashboards and
-stack. The exact component source commits are recorded in
-[source-subjects.json](source-subjects.json). This repository is a history-free
-snapshot; original third-party copyright and licensing notices are retained.
+stack. The imported component source commits are recorded in
+[source-subjects.json](source-subjects.json). Subsequent changes in this
+repository are recorded in its Git history; original third-party copyright
+and licensing notices are retained.
 
 Project-original code is GPL-3.0-or-later. Upstream components retain their
 respective licenses; see [notices](notices) and each component's license files.

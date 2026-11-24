@@ -179,6 +179,40 @@ func UpdateUpgrade(name string, fn func(*UpgradeDefinition)) {
 	}
 }
 
+// RebuiltState is the consensus state derived from a complete header scan.
+type RebuiltState struct {
+	Active         bool
+	LockedIn       bool
+	AnchorSet      bool
+	ActivateAnchor uint64
+	ThresholdAt    uint64
+}
+
+// PublishRebuiltStates makes persistence and publication one logical update.
+// persist must atomically commit all states and the corresponding checkpoint;
+// an error leaves the visible upgrade states unchanged.
+func PublishRebuiltStates(states map[string]RebuiltState, persist func() error) error {
+	upgradeMu.Lock()
+	defer upgradeMu.Unlock()
+	if len(states) != len(upgrades) {
+		return fmt.Errorf("rebuilt upgrade count %d does not match definitions %d", len(states), len(upgrades))
+	}
+	for name := range states {
+		if _, ok := upgrades[name]; !ok {
+			return fmt.Errorf("unknown rebuilt upgrade %s", name)
+		}
+	}
+	if err := persist(); err != nil {
+		return err
+	}
+	for name, state := range states {
+		u := upgrades[name]
+		u.Active, u.LockedIn, u.AnchorSet = state.Active, state.LockedIn, state.AnchorSet
+		u.ActivateAnchor, u.ThresholdAt = state.ActivateAnchor, state.ThresholdAt
+	}
+	return nil
+}
+
 // RegisterUpgrade adds a new upgrade definition after validating that the
 // name is unique and the bit mask does not overlap with existing upgrades.
 func RegisterUpgrade(def *UpgradeDefinition) error {
@@ -258,8 +292,8 @@ func SetUpgradeLockedIn(name string, activateAnchor uint64) error {
 // provided timestamp.
 func IsUpgradeActive(name string, layer uint64) bool {
 	upgradeMu.RLock()
+	defer upgradeMu.RUnlock()
 	u, ok := upgrades[name]
-	upgradeMu.RUnlock()
 	if !ok {
 		return false
 	}

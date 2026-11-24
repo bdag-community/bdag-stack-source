@@ -183,10 +183,12 @@ type BlockChain struct {
 
 	selfAdd atomic.Int64
 
-	upgradeCacheMu   sync.Mutex
-	upgradeTipID     uint
-	upgradeWindows   map[string]upgradeWindowCache
-	upgradeRebuildMu sync.Mutex
+	upgradeCacheMu            sync.Mutex
+	upgradeTipID              uint
+	upgradeWindows            map[string]upgradeWindowCache
+	upgradeRebuildMu          sync.Mutex
+	upgradeRebuildUnavailable atomic.Bool
+	upgradeRebuildTipHeight   atomic.Uint64
 
 	no24hCheck bool
 }
@@ -243,7 +245,9 @@ func (b *BlockChain) Init() error {
 	if err := b.loadUpgradeStates(); err != nil {
 		return err
 	}
-	b.MaybeRebuildUpgradesFromHeaders()
+	if err := b.MaybeRebuildUpgradesFromHeaders(); err != nil {
+		return fmt.Errorf("initialize upgrade state: %w", err)
+	}
 	// Recalculate upgrade state from the current chain tip.
 	tip := b.bd.GetMainChainTip()
 	if tip != nil {
@@ -593,6 +597,9 @@ func (b *BlockChain) IsCurrent() bool {
 //
 // This function MUST be called with the chain state lock held (for reads).
 func (b *BlockChain) isCurrent() bool {
+	if b.upgradeRebuildUnavailable.Load() {
+		return false
+	}
 	// Not current if the latest main (best) chain height is before the
 	// latest known good checkpoint (when checkpoints are enabled).
 	checkpoint := b.LatestCheckpoint()

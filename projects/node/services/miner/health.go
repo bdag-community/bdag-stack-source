@@ -247,6 +247,11 @@ func (m *Miner) localEVMRecoveryStatus() (bool, string) {
 	if m == nil || m.consensus == nil {
 		return false, ""
 	}
+	if provider, ok := m.consensus.BlockChain().(interface{ UpgradeReconciliationStatus() (bool, string) }); ok {
+		if held, reason := provider.UpgradeReconciliationStatus(); held {
+			return true, reason
+		}
+	}
 	provider, ok := m.consensus.BlockChain().(model.LocalEVMRecoveryProvider)
 	if !ok {
 		return false, ""

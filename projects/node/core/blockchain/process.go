@@ -448,6 +448,10 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	defer func() {
 		b.flushNotifications()
 	}()
+	if b.upgradeRebuildUnavailable.Load() {
+		b.ChainUnlock()
+		return nil, fmt.Errorf("local upgrade state unavailable; reconciliation required")
+	}
 	if holds := b.localEVMRecovery.Load(); holds != nil && holds.fatal != nil {
 		b.ChainUnlock()
 		return nil, holds.fatal
@@ -648,9 +652,18 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 		b.clearAppliedLocalEVMRecovery(*ib.GetHash(), b.bdagChain)
 	}
 	unlockEVM()
-	finalUpgradeMarkerRefreshed := false
-	if reorgOccurred {
-		finalUpgradeMarkerRefreshed = b.tryRefreshFinalUpgradeRebuildState(previousMainTip)
+	tipHeight := uint64(b.bd.GetMainChainTip().GetHeight())
+	markerHeight := b.upgradeRebuildTipHeight.Load()
+	checkpointDue := tipHeight >= markerHeight && tipHeight-markerHeight >= 2048
+	if (reorgOccurred || checkpointDue) && governanceErr == nil && evmCheckpointErr == nil && evmStateGuardErr == nil {
+		reason := "forward"
+		var prior blockdag.IBlock
+		if reorgOccurred {
+			reason, prior = "reorg", previousMainTip
+		}
+		if err := b.reconcileUpgradesHeld(reason, prior, false); err != nil {
+			l.Error("upgrade reconciliation failed after committed block", "reason", reason, "err", err)
+		}
 	}
 	b.ChainUnlock()
 	if governanceErr != nil {
@@ -661,9 +674,6 @@ func (b *BlockChain) maybeAcceptBlock(block *types.SerializedBlock, flags Behavi
 	}
 	if evmStateGuardErr != nil {
 		return ib, evmStateGuardErr
-	}
-	if reorgOccurred && !finalUpgradeMarkerRefreshed {
-		b.RebuildUpgradesFromHeadersIfNeeded("reorg")
 	}
 	if connectedBlocks.Len() > 0 {
 		start := time.Now()

@@ -442,7 +442,7 @@ func (m *Miner) StatsGbtRequest(currentReqMillSec int64, txcount int, longpollid
 	if m.stats.TotalGbtRequests > 0 {
 		m.stats.GbtRequestAvgDuration = m.stats.TotalGbtRequestDuration / float64(m.stats.TotalGbtRequests)
 	}
-	gbtRequestDuration.Update(time.Duration(float64(currentReqMillSec)/1000) * time.Second)
+	gbtRequestDuration.Update(time.Duration(currentReqMillSec) * time.Millisecond)
 	if float64(currentReqMillSec)/1000 > m.stats.MaxGbtRequestDuration {
 		m.stats.MaxGbtRequestDuration = float64(currentReqMillSec) / 1000
 		m.stats.MaxGbtRequestTimeLongpollid = longpollid
@@ -467,7 +467,7 @@ func (m *Miner) StatsGbt(currentReqMillSec int64, txcount int) {
 	if m.stats.TotalGbts > 0 {
 		m.stats.GbtAvgDuration = m.stats.TotalGbtDuration / float64(m.stats.TotalGbts)
 	}
-	gbtDuration.Update(time.Duration(float64(currentReqMillSec)/1000) * time.Second)
+	gbtDuration.Update(time.Duration(currentReqMillSec) * time.Millisecond)
 	if float64(currentReqMillSec)/1000 > m.stats.MaxGbtDuration {
 		m.stats.MaxGbtDuration = float64(currentReqMillSec) / 1000
 	}
