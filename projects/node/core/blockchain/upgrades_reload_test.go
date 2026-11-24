@@ -8,6 +8,7 @@ import (
 	"github.com/BlockdagNetworkLabs/bdag/consensus/model"
 	"github.com/BlockdagNetworkLabs/bdag/core/event"
 	"github.com/BlockdagNetworkLabs/bdag/database/chaindb"
+	"github.com/BlockdagNetworkLabs/bdag/database/rawdb"
 	"github.com/BlockdagNetworkLabs/bdag/engine/txscript"
 	"github.com/BlockdagNetworkLabs/bdag/params"
 	"github.com/BlockdagNetworkLabs/bdag/upgrades"
@@ -327,8 +328,8 @@ func TestUpgradeRebuildStateMatchesVotingCheckpointAndDefinitions(t *testing.T) 
 	sameCheckpoint.TipID++
 	sameCheckpoint.TipLayer = 22
 	sameCheckpoint.TipHash = ethcommon.HexToHash("0x02")
-	if !upgradeRebuildStateMatches(stored, sameCheckpoint) {
-		t.Fatalf("expected tip changes inside the same incomplete voting window to match")
+	if upgradeRebuildStateMatches(stored, sameCheckpoint) {
+		t.Fatalf("different tips cannot be trusted solely because the completed-window counts match")
 	}
 
 	crossedCheckpoint := stored
@@ -366,41 +367,36 @@ func TestUpgradeDefinitionsHashChangesOnDefinitionEdit(t *testing.T) {
 	}
 }
 
-func TestUpgradeRebuildMarkerRequiresPerUpgradeState(t *testing.T) {
-	cfg := &config.Config{DataDir: ""}
-	db, err := chaindb.New(cfg)
+func TestUpgradeRebuildMarkerRequiresBoundResults(t *testing.T) {
+	db, err := chaindb.New(&config.Config{DataDir: ""})
 	if err != nil {
-		t.Fatalf("failed to create db: %v", err)
+		t.Fatal(err)
 	}
-	cons := &mockConsensus{db: db, params: &params.Params{}}
-	bc := &BlockChain{consensus: cons}
-	bc.resetUpgradeCache()
-
-	oldUpgrades := upgrades.ReplaceUpgrades(map[string]*upgrades.UpgradeDefinition{})
+	defer db.Close()
+	bc := &BlockChain{consensus: &mockConsensus{db: db, params: &params.Params{}}}
+	old := upgrades.ReplaceUpgrades(map[string]*upgrades.UpgradeDefinition{
+		"test": {Name: "test", BitMask: 1, Threshold: 1, WindowSize: 1},
+	})
 	upgrades.RegisterPersist(nil)
-	defer func() { upgrades.ReplaceUpgrades(oldUpgrades) }()
-
-	if err := upgrades.RegisterUpgrade(&upgrades.UpgradeDefinition{Name: "test", BitMask: 0x1, Threshold: 1, WindowSize: 1}); err != nil {
-		t.Fatalf("register upgrade: %v", err)
+	defer upgrades.ReplaceUpgrades(old)
+	marker := upgradeRebuildState{Version: upgradeRebuildStateVersion, DefinitionsHash: upgradeDefinitionsHash()}
+	if err := bc.persistUpgradeRebuildState(marker); err != nil {
+		t.Fatal(err)
 	}
-
-	ok, err := bc.hasPersistedStateForAllUpgrades()
-	if err != nil {
-		t.Fatalf("has persisted state: %v", err)
+	if _, _, ok := bc.loadUpgradeCheckpoint(); ok {
+		t.Fatal("marker accepted without bound results")
 	}
-	if ok {
-		t.Fatalf("expected missing per-upgrade state to reject rebuild marker")
+	if err := bc.commitUpgradeResults(marker, []upgradeRebuildResult{{Name: "test"}}); err != nil {
+		t.Fatal(err)
 	}
-
-	if err := bc.persistUpgradeState("test", upgrades.GetUpgrades()["test"]); err != nil {
-		t.Fatalf("persist upgrade state: %v", err)
+	if _, _, ok := bc.loadUpgradeCheckpoint(); !ok {
+		t.Fatal("complete checkpoint rejected")
 	}
-	ok, err = bc.hasPersistedStateForAllUpgrades()
-	if err != nil {
-		t.Fatalf("has persisted state after persist: %v", err)
+	if err := db.Put(rawdb.UpgradeRebuildResultsKey(), []byte("corrupt")); err != nil {
+		t.Fatal(err)
 	}
-	if !ok {
-		t.Fatalf("expected persisted per-upgrade state to satisfy marker validation")
+	if _, _, ok := bc.loadUpgradeCheckpoint(); ok {
+		t.Fatal("marker accepted corrupt results")
 	}
 }
 

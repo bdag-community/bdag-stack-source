@@ -97,6 +97,9 @@ var (
 	// upgradeRebuildStateKey stores metadata for the last full upgrade state
 	// rebuild from historical headers.
 	upgradeRebuildStateKey = []byte("upgradeRebuildState")
+
+	// upgradeRebuildResultsKey stores the results bound to the rebuild marker.
+	upgradeRebuildResultsKey = []byte("upgradeRebuildResults")
 )
 
 // encodeBlockID encodes a block id as big endian uint64
@@ -149,6 +152,11 @@ func invalidtxLookupKey(hash *common.Hash) []byte {
 // upgrade name.
 func UpgradeStateKey(name string) []byte {
 	return append(upgradeStatePrefix, []byte(name)...)
+}
+
+// UpgradeRebuildResultsKey identifies the checkpoint's immutable voting results.
+func UpgradeRebuildResultsKey() []byte {
+	return upgradeRebuildResultsKey
 }
 
 // UpgradeRebuildStateKey returns the key used to store metadata for the last
